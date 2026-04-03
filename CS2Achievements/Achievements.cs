@@ -3,7 +3,8 @@ using CounterStrike2GSI.EventMessages;
 namespace CS2Achievements;
 
 [Flags]
-enum Category {
+enum Category
+{
 	TeamTactics,
 	CombatSkills,
 	WeaponSpecialist,
@@ -14,11 +15,13 @@ enum Category {
 }
 
 [Flags]
-public enum Event {
+public enum Event
+{
 	KilledPlayer
 }
 
-struct Achievement {
+struct Achievement
+{
 	/// <summary>
 	/// Name of achievement
 	/// </summary>
@@ -49,8 +52,9 @@ struct Achievement {
 	public int MaxProgress { get; set; }
 }
 
-public static class Achievements {
-static readonly List<Achievement> AchievementList = [
+public static class Achievements
+{
+	static readonly List<Achievement> AchievementList = [
 		// new () { Name = "Awardist", Description = "Earn 100 achievements.", Complete = false, Progress = 0, MaxProgress = 100, Category = Category.TeamTactics },
 		// new () { Name = "Someone Set Up Us The Bomb", Description = "Win a round by planting a bomb.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Rite of First Defusal", Description = "Win a round by defusing a bomb.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.TeamTactics },
@@ -257,8 +261,6 @@ static readonly List<Achievement> AchievementList = [
 		Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
 
 		string json = System.Text.Json.JsonSerializer.Serialize(AchievementList);
-		Console.WriteLine($"Saving {AchievementList.Count} achievements to file.");
-		Console.WriteLine(json);
 		File.WriteAllText(SaveFilePath, json);
 	}
 
@@ -276,7 +278,8 @@ static readonly List<Achievement> AchievementList = [
 				if (idx >= 0) {
 					AchievementList[idx] = loaded;
 					updated++;
-				} else {
+				}
+				else {
 					AchievementList.Add(loaded);
 					added++;
 				}
@@ -307,6 +310,10 @@ static readonly List<Achievement> AchievementList = [
 			achievement.Progress = achievement.MaxProgress;
 			achievement.Complete = true;
 			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+			PopupStack.Show($"Achievement Unlocked!", $"{achievement.Name}: {achievement.Description}");
+		}
+		else {
+			PopupStack.Show($"{achievement.Name}", $"Progress: {achievement.Progress}/{achievement.MaxProgress}");
 		}
 
 		AchievementList[idx] = achievement;
@@ -316,7 +323,7 @@ static readonly List<Achievement> AchievementList = [
 	public static void OnEvent(Event eventName) {
 		foreach (Achievement achievement in AchievementList.ToList()) {
 			if (achievement.OnEvent == eventName)
-					IncrementAchievementProgress(achievement.Name);
+				IncrementAchievementProgress(achievement.Name);
 		}
 	}
 }
