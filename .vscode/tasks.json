@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CS2Achievements",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/CS2Achievements/CS2Achievements.csproj"
+      ],
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

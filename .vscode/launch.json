@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CS2Achievements",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "CS2Achievements",
+      "program": "${workspaceFolder}/CS2Achievements/bin/Debug/net10.0/CS2Achievements.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/CS2Achievements/bin/Debug/net10.0",
+      "stopAtEntry": false,
+      "console": "externalTerminal"
+    }
+  ]
+}
