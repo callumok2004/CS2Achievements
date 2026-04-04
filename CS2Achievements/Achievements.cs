@@ -1,5 +1,7 @@
 using CounterStrike2GSI.EventMessages;
 
+using System.Reflection;
+
 namespace CS2Achievements;
 
 [Flags]
@@ -288,6 +290,12 @@ public static class Achievements
 		}
 		else
 			Console.WriteLine("Failed to load achievements from file.");
+
+		// testing
+		// if (AchievementList.Count > 0) {
+		// 	var achievement = AchievementList[0];
+		// 	PopupStack.Show($"{achievement.Name}", $"Progress: {achievement.Progress}/{achievement.MaxProgress}", GetAchievementIcon(achievement.Name));
+		// }
 	}
 
 	public static void IncrementAchievementProgress(string achievementName, int amount = 1) {
@@ -312,13 +320,43 @@ public static class Achievements
 			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
 			PopupStack.Show($"Achievement Unlocked!", $"{achievement.Name}: {achievement.Description}");
 		}
-		else {
+		else
 			PopupStack.Show($"{achievement.Name}", $"Progress: {achievement.Progress}/{achievement.MaxProgress}");
-		}
 
 		AchievementList[idx] = achievement;
 		SaveAchievements();
 	}
+
+	static Dictionary<string, Image> CachedIcons = [];
+	private static Image GetAchievementIcon(string name) {
+		if (CachedIcons.TryGetValue(name, out Image? cachedIcon))
+			return cachedIcon;
+
+		string? normalizedName = NormalizeNameForIcon(name);
+		if (normalizedName == null)
+			return SystemIcons.Question.ToBitmap();
+
+
+		string resourcePath = $"CS2Achievements.Images.{normalizedName}.png";
+		using Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourcePath);
+		if (stream != null) {
+			using var ms = new MemoryStream();
+			stream.CopyTo(ms);
+			var skBitmap = SkiaSharp.SKBitmap.Decode(ms.ToArray());
+			if (skBitmap != null) {
+				using var skImage = SkiaSharp.SKImage.FromBitmap(skBitmap);
+				using var encoded = skImage.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+				using var pngStream = new MemoryStream(encoded.ToArray());
+				Image icon = Image.FromStream(pngStream);
+				CachedIcons[name] = icon;
+				return icon;
+			}
+		}
+
+		return SystemIcons.Question.ToBitmap();
+	}
+
+	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
 	public static void OnEvent(Event eventName) {
 		foreach (Achievement achievement in AchievementList.ToList()) {
