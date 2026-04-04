@@ -443,7 +443,7 @@ public static class Achievements
 		return SystemIcons.Question.ToBitmap();
 	}
 
-	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
+	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
 	public static Func<object?, bool> WithWeapon(string weapon) => data => data is string weaponName && weaponName.Equals(weapon, StringComparison.OrdinalIgnoreCase);
 	public static Func<object?, bool> WithAnyOfWeapons(params string[] weapons) => data => data is string weaponName && weapons.Any(w => weaponName.Equals(w, StringComparison.OrdinalIgnoreCase));
