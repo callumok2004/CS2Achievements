@@ -1,10 +1,27 @@
-﻿using CounterStrike2GSI;
+﻿global using static CS2Achievements.Global;
+
+using CounterStrike2GSI;
 using CounterStrike2GSI.EventMessages;
 using CounterStrike2GSI.Nodes;
 
+using Serilog;
+
 namespace CS2Achievements;
 
-class Program
+public static class Global {
+	public static CounterStrike2GSI.GameState? CurrentGameState;
+	public static GameMode CurrentGameMode = GameMode.Undefined;
+	public static string CurrentMap = string.Empty;
+
+	public static ILogger Logger { get; } = new LoggerConfiguration()
+		.MinimumLevel.Verbose()
+		.Enrich.FromLogContext()
+		.WriteTo.Console()
+		.CreateLogger();
+
+}
+
+public class Program
 {
 	static GameStateListener? _gsl;
 	static Player? self;
@@ -13,34 +30,34 @@ class Program
 		_gsl = new GameStateListener(4000);
 
 		if (!_gsl.GenerateGSIConfigFile("Achievements"))
-			Console.WriteLine("Could not generate GSI configuration file.");
+			Logger.Error("Could not generate GSI configuration file.");
 
-		Console.WriteLine("Loading achievements...");
+		Logger.Debug("Loading achievements...");
 
 		Achievements.LoadAchievements();
 		Achievements.SaveAchievements();
 
-		Console.WriteLine($"Loaded {Achievements.AchievementList.Count} achievements.");
+		Logger.Information("Loaded {Count} achievements.", Achievements.AchievementList.Count.ToString());
 
 		_gsl.NewGameState += OnNewGameState;
-		_gsl.GameEvent += OnGameEvent;
 		_gsl.BombStateUpdated += OnBombStateUpdated;
 		_gsl.PlayerGotKill += OnPlayerGotKill;
-		_gsl.PlayerDied += OnPlayerDied;
-		_gsl.KillFeed += OnKillFeed;
+		// _gsl.KillFeed += OnKillFeed;
 		_gsl.PlayerWeaponsPickedUp += OnPlayerWeaponsPickedUp;
 		_gsl.PlayerWeaponsDropped += OnPlayerWeaponsDropped;
 		_gsl.RoundStarted += OnRoundStarted;
 		_gsl.RoundConcluded += OnRoundConcluded;
+		_gsl.GamemodeChanged += OnGamemodeChanged;
+		_gsl.MapUpdated += OnMapUpdated;
 
 		if (!_gsl.Start()) {
-			Console.WriteLine("GameStateListener could not start. Try running this program as Administrator. Exiting.");
+			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator. Exiting.");
 			Console.ReadLine();
 			Environment.Exit(0);
 		}
-		Console.WriteLine("Listening for game integration calls...");
+		Logger.Information("Listening for game integration calls...");
 
-		Console.WriteLine("Press ESC to quit");
+		Logger.Information("Press ESC to quit.");
 		do {
 			while (!Console.KeyAvailable)
 				Thread.Sleep(1000);
@@ -48,33 +65,37 @@ class Program
 	}
 
 	private static void OnNewGameState(CounterStrike2GSI.GameState gamestate) {
-		// Console.WriteLine($"New GameState received at {gamestate.Provider.Timestamp} with map {gamestate.Map.Name} and player {gamestate.Player.Name}.");
-		self = gamestate.Player;
-		// Console.WriteLine($"Self is {self}");
-	}
-
-	private static void OnGameEvent(CS2GameEvent game_event) {
-		// if (game_event is PlayerTookDamage player_took_damage)
-		// 	Console.WriteLine($"The player {player_took_damage.Player.Name} took {player_took_damage.Previous - player_took_damage.New} damage!");
-		// else if (game_event is PlayerActiveWeaponChanged active_weapon_changed)
-		// 	Console.WriteLine($"The player {active_weapon_changed.Player.Name} changed their active weapon to {active_weapon_changed.New.Name} from {active_weapon_changed.Previous.Name}!");
+		if (self == null) { // apparently there is no reliable way to get ourself, and gamestate can contain other players, especially when spectating :(
+			self = gamestate.Player;
+			Logger.Warning("Identified self as {PlayerName} ({SteamID}). If this is incorrect, relaunch while at the main menu or before launching the game.", self.Name, self.SteamID);
+		}
+		CurrentGameState = gamestate;
 	}
 
 	private static void OnBombStateUpdated(BombStateUpdated game_event) {
 		Console.WriteLine($"The bomb is now {game_event.New}.");
 	}
 
-	private static void OnPlayerGotKill(PlayerGotKill game_event) {
-		// Console.WriteLine($"The player {game_event.Player.Name} earned a {(game_event.IsHeadshot ? "headshot " : "")}kill with {game_event.Weapon.Name}!" + (game_event.IsAce ? " And it was an ACE!" : ""));
-		Console.WriteLine($"{game_event.Player.Name} got a kill with {game_event.Weapon.Name}.");
-		if (game_event.Player == self) {
-			Achievements.OnEvent(Event.KilledPlayer, game_event.Weapon.Name);
-			Achievements.AddUniqueItem("Expert Marksman", game_event.Weapon.Name);
-		}
+	private static void OnGamemodeChanged(GamemodeChanged game_event) {
+		if (game_event.New == CurrentGameMode) return;
+
+		CurrentGameMode = game_event.New;
+		Logger.Debug($"Gamemode changed to {game_event.New}.");
 	}
 
-	private static void OnPlayerDied(PlayerDied game_event) {
-		Console.WriteLine($"The player {game_event.Player.Name} died.");
+	private static void OnMapUpdated(MapUpdated game_event) {
+		if (game_event.New.Name == CurrentMap) return;
+
+		CurrentMap = game_event.New.Name;
+		Logger.Debug($"Map updated to {game_event.New.Name}.");
+	}
+
+	private static void OnPlayerGotKill(PlayerGotKill game_event) {
+		// Logger.Debug($"PlayerGotKill event: Player={game_event.Player.Name}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}, IsAce={game_event.IsAce}");
+		if (game_event.Player.SteamID == self?.SteamID) {
+			Achievements.OnEvent(Event.KilledPlayer, game_event);
+			Achievements.AddUniqueItem("Expert Marksman", game_event.Weapon.Name);
+		}
 	}
 
 	private static void OnKillFeed(KillFeed game_event) {
@@ -94,12 +115,12 @@ class Program
 	}
 
 	private static void OnRoundStarted(RoundStarted game_event) {
-		if (game_event.IsFirstRound)
-			Console.WriteLine($"First round {game_event.Round} started.");
-		else if (game_event.IsLastRound)
-			Console.WriteLine($"Last round {game_event.Round} started.");
-		else
-			Console.WriteLine($"A new round {game_event.Round} started.");
+		// if (game_event.IsFirstRound)
+		// 	Console.WriteLine($"First round {game_event.Round} started.");
+		// else if (game_event.IsLastRound)
+		// 	Console.WriteLine($"Last round {game_event.Round} started.");
+		// else
+		// 	Console.WriteLine($"A new round {game_event.Round} started.");
 	}
 
 	private static void OnRoundConcluded(RoundConcluded game_event) {

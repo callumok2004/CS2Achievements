@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -61,9 +62,9 @@ namespace CS2Achievements
 			Width = 360;
 			Height = 90;
 
-			var screen = Screen.PrimaryScreen!.WorkingArea;
-			TargetY = screen.Bottom;
-			Location = new Point(screen.Right - Width - 10, screen.Bottom);
+			var bounds = PopupStack.GetCS2Bounds();
+			TargetY = bounds.Bottom;
+			Location = new Point(bounds.Right - Width - 10, bounds.Bottom);
 
 			closeTimer = new System.Windows.Forms.Timer { Interval = 4000 };
 			closeTimer.Tick += (s, e) => {
@@ -108,7 +109,9 @@ namespace CS2Achievements
 
 			using var descFont = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
 			string descText = _maxProgress > 0 ? $"{_description}  ({_progress}/{_maxProgress})" : _description;
-			g.DrawString(descText, descFont, new SolidBrush(DescColor), cx, 36);
+			var descRect = new RectangleF(cx, 34, cw, Height - 34 - (_maxProgress > 0 ? 20 : 10));
+			var fmt = new StringFormat { Trimming = StringTrimming.Word };
+			g.DrawString(descText, descFont, new SolidBrush(DescColor), descRect, fmt);
 
 			if (_maxProgress > 0) {
 				const int barH = 4;
@@ -131,6 +134,22 @@ namespace CS2Achievements
 		private static Thread? _uiThread;
 		private static System.Windows.Forms.Timer? _animationTimer;
 		private const float LerpSpeed = 0.18f;
+
+		[DllImport("user32.dll")]
+		private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+		[StructLayout(LayoutKind.Sequential)]
+		private struct RECT { public int Left, Top, Right, Bottom; }
+
+		public static Rectangle GetCS2Bounds() {
+			var process = Process.GetProcessesByName("cs2").FirstOrDefault();
+			if (process != null) {
+				var hwnd = process.MainWindowHandle;
+				if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out RECT r))
+					return Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom);
+			}
+			return Screen.PrimaryScreen!.WorkingArea;
+		}
 
 		[DllImport("user32.dll")]
 		private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
@@ -165,17 +184,31 @@ namespace CS2Achievements
 		}
 
 		private static void AnimationTick(object? sender, EventArgs e) {
-			var screen = Screen.PrimaryScreen!.WorkingArea;
+			var bounds = GetCS2Bounds();
 			foreach (var popup in popups.ToList()) {
 				if (popup.IsDisposed) continue;
+
+				int targetX = bounds.Right - popup.Width - 10;
+				if (popup.Left != targetX)
+					popup.Left = targetX;
+
 				int current = popup.Top;
 				int target = popup.TargetY;
 				int next = Math.Abs(current - target) > 1
 					? (int)Math.Round(current + (target - current) * LerpSpeed)
 					: target;
 				popup.Top = next;
-					// Once a leaving popup is fully off screen, close it
-				if (popup.IsLeaving && next >= screen.Bottom + popup.Height) {
+
+				int clipTop    = Math.Max(0, bounds.Top - next);
+				int clipBottom = Math.Max(0, Math.Min(popup.Height, bounds.Bottom - next));
+				int clipLeft   = Math.Max(0, bounds.Left - popup.Left);
+				int clipRight  = Math.Max(0, Math.Min(popup.Width, bounds.Right - popup.Left));
+				if (clipBottom > clipTop && clipRight > clipLeft)
+					popup.Region = new Region(new Rectangle(clipLeft, clipTop, clipRight - clipLeft, clipBottom - clipTop));
+				else
+					popup.Region = new Region(Rectangle.Empty);
+
+				if (popup.IsLeaving && next >= bounds.Bottom + popup.Height) {
 					popups.Remove(popup);
 					popup.Close();
 					UpdatePositions();
@@ -201,7 +234,7 @@ namespace CS2Achievements
 		public static void StartLeave(AchievementPopup popup) {
 			if (popup.IsDisposed || popup.IsLeaving) return;
 			popup.IsLeaving = true;
-			popup.TargetY = Screen.PrimaryScreen!.WorkingArea.Bottom + popup.Height + 10;
+			popup.TargetY = GetCS2Bounds().Bottom + popup.Height + 10;
 			UpdatePositions();
 		}
 
@@ -222,10 +255,9 @@ namespace CS2Achievements
 			}, null);
 		}
 
-		private static void UpdatePositions() {
-			var screen = Screen.PrimaryScreen!.WorkingArea;
-			int y = screen.Bottom - 10;
-			// Only staying popups occupy stack positions; leaving popups keep their own target (screen.Bottom)
+		internal static void UpdatePositions() {
+			var bounds = GetCS2Bounds();
+			int y = bounds.Bottom - 10;
 			for (int i = popups.Count - 1; i >= 0; i--) {
 				var p = popups[i];
 				if (p.IsLeaving) continue;

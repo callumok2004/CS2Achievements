@@ -1,3 +1,6 @@
+using CounterStrike2GSI.EventMessages;
+using CounterStrike2GSI.Nodes;
+
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -121,7 +124,7 @@ public static class Achievements
 		"weapon_g3sg1", // G3SG1
 		"weapon_scar20", // SCAR-20
 		// Equipment
-		"weapon_knife",
+		// "weapon_knife",
 		"weapon_taser" // Zeus x27
 	];
 
@@ -174,7 +177,7 @@ public static class Achievements
 		// new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Spray and Pray", Description = "Kill two enemies while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Friendly Firearms", Description = "Kill 100 enemies with enemy weapons.", MaxProgress = 1, Category = Category.CombatSkills },
-		new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [data => false], Items = AllWeapons},
+		new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Items = AllWeapons},
 		// new () { Name = "Make the Cut", Description = "Win a knife fight.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "The Bleeding Edge", Description = "Win 100 knife fights.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Defuse This!", Description = "Kill the defuser with an HE grenade .", MaxProgress = 1, Category = Category.CombatSkills },
@@ -360,7 +363,7 @@ public static class Achievements
 			}
 		}
 		else
-			Console.WriteLine("Failed to load achievements from file.");
+			Logger.Warning("Failed to load achievements from file.");
 
 		CheckMetaAchievements(silent: true);
 
@@ -385,18 +388,21 @@ public static class Achievements
 		int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
 
 		if (idx == -1) {
-			Console.WriteLine($"Achievement '{achievementName}' not found.");
+			Logger.Warning($"Achievement '{achievementName}' not found.");
 			return;
 		}
 
 		var achievement = AchievementList[idx];
 		if (achievement.Complete) {
-			Console.WriteLine($"Achievement '{achievement.Name}' is already complete.");
+			// Logger.Information($"Achievement '{achievement.Name}' is already complete.");
 			return;
 		}
 
+		if (achievement.Items != null)
+			return;
+
 		achievement.Progress += amount;
-		Console.WriteLine($"Progress for achievement '{achievement.Name}' increased by {amount}. Current progress: {achievement.Progress}/{achievement.MaxProgress}");
+		Logger.Debug($"Progress for achievement '{achievement.Name}' increased by {amount}. Current progress: {achievement.Progress}/{achievement.MaxProgress}");
 
 		bool prerequisiteMet = achievement.Prerequisite == null ||
 			AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
@@ -404,7 +410,7 @@ public static class Achievements
 		if (achievement.Progress >= achievement.MaxProgress) {
 			achievement.Progress = achievement.MaxProgress;
 			achievement.Complete = true;
-			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+			Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
 			PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
 		}
 		else if (prerequisiteMet)
@@ -446,38 +452,34 @@ public static class Achievements
 
 	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
-
-	public static Func<object?, bool> WithWeapon(string weapon) => data => data is string weaponName && weaponName.Equals(weapon, StringComparison.OrdinalIgnoreCase);
-	public static Func<object?, bool> WithAnyOfWeapons(params string[] weapons) => data => data is string weaponName && weapons.Any(w => weaponName.Equals(w, StringComparison.OrdinalIgnoreCase));
-
 	public static void AddUniqueItem(string achievementName, string item) {
 		int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
 		if (idx == -1) {
-			Console.WriteLine($"Achievement '{achievementName}' not found.");
+			Logger.Warning($"Achievement '{achievementName}' not found.");
 			return;
 		}
 
 		var achievement = AchievementList[idx];
 		if (achievement.Complete) {
-			Console.WriteLine($"Achievement '{achievement.Name}' is already complete.");
+			// Logger.Information($"Achievement '{achievement.Name}' is already complete.");
 			return;
 		}
 
 		if (achievement.Items != null && !achievement.Items.Contains(item)) {
-			Console.WriteLine($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
+			Logger.Warning($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
 			return;
 		}
 
 		achievement.CollectedItems ??= [];
 		if (!achievement.CollectedItems.Add(item)) {
-			Console.WriteLine($"Item '{item}' already collected for achievement '{achievement.Name}'.");
+			// Logger.Debug($"Item '{item}' already collected for achievement '{achievement.Name}'.");
 			return;
 		}
 
 		if (achievement.Items != null)
 			achievement.MaxProgress = achievement.Items.Count;
 		achievement.Progress = achievement.CollectedItems.Count;
-		Console.WriteLine($"Item '{item}' added to '{achievement.Name}'. Progress: {achievement.Progress}/{achievement.MaxProgress}");
+		Logger.Debug($"Item '{item}' added to '{achievement.Name}'. Progress: {achievement.Progress}/{achievement.MaxProgress}");
 
 		bool prerequisiteMet = achievement.Prerequisite == null ||
 			AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
@@ -485,7 +487,7 @@ public static class Achievements
 		if (achievement.Progress >= achievement.MaxProgress) {
 			achievement.Progress = achievement.MaxProgress;
 			achievement.Complete = true;
-			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+			Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
 			PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
 		}
 		else if (prerequisiteMet)
@@ -509,7 +511,7 @@ public static class Achievements
 			if (achievement.Progress >= achievement.MaxProgress && achievement.MaxProgress > 0) {
 				achievement.Complete = true;
 				if (!silent) {
-					Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+					Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
 					PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
 					SaveAchievements();
 				}
@@ -525,4 +527,12 @@ public static class Achievements
 				IncrementAchievementProgress(achievement.Name);
 		}
 	}
+
+	// Filters
+	public static Func<object?, bool> WithWeapon(string weapon) => data => data is PlayerGotKill evnt && evnt.Weapon.Name.Equals(weapon, StringComparison.OrdinalIgnoreCase);
+	public static Func<object?, bool> WithAnyOfWeapons(params string[] weapons) => data => data is PlayerGotKill evnt && weapons.Any(w => evnt.Weapon.Name.Equals(w, StringComparison.OrdinalIgnoreCase));
+	public static Func<object?, bool> WithMap(string map) => data => CurrentMap.Equals(map, StringComparison.OrdinalIgnoreCase);
+	public static Func<object?, bool> WithAnyOfMaps(params string[] maps) => data => maps.Any(m => CurrentMap.Equals(m, StringComparison.OrdinalIgnoreCase));
+	public static Func<object?, bool> WithGameMode(GameMode mode) => data => CurrentGameMode == mode;
+	public static Func<object?, bool> WithAnyOfGameModes(params GameMode[] modes) => data => modes.Contains(CurrentGameMode);
 }
