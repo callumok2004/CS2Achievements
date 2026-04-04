@@ -58,10 +58,11 @@ public struct Achievement
 	/// </summary>
 	public string? Prerequisite { get; set; }
 	/// <summary>
-	/// Optional filter: event data must pass this predicate for progress to increment
+	/// Optional filters: event data must pass ALL predicates for progress to increment.
+	/// Assign a single filter or a collection: Filters = [WithWeapon(x), OnMap(y)]
 	/// </summary>
 	[JsonIgnore]
-	public Func<object?, bool>? Filter { get; set; }
+	public Func<object?, bool>[]? Filters { get; set; }
 	/// <summary>
 	/// Required items to collect for set-based achievements (e.g. weapon names).
 	/// MaxProgress and Progress are derived automatically. Defined in code only.
@@ -173,7 +174,7 @@ public static class Achievements
 		// new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Spray and Pray", Description = "Kill two enemies while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Friendly Firearms", Description = "Kill 100 enemies with enemy weapons.", MaxProgress = 1, Category = Category.CombatSkills },
-		new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filter = data => false, Items = AllWeapons}, // todo
+		new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [data => false], Items = AllWeapons},
 		// new () { Name = "Make the Cut", Description = "Win a knife fight.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "The Bleeding Edge", Description = "Win 100 knife fights.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Defuse This!", Description = "Kill the defuser with an HE grenade .", MaxProgress = 1, Category = Category.CombatSkills },
@@ -202,45 +203,45 @@ public static class Achievements
 		// new () { Name = "The Immovable Object", Description = "Kill an enemy who has killed four of your teammates within the current round.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Head Shred Redemption", Description = "Kill five enemy players with headshots in a single round.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "The Road to Hell", Description = "Blind an enemy player who then kills a teammate.", MaxProgress = 1, Category = Category.CombatSkills },
-		new () { Name = "Desert Eagle Expert", Description = "Kill 200 enemies with the Desert Eagle. Killing enemies with the R8 Revolver also count towards this achievement.", MaxProgress = 200, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithAnyOfWeapons("weapon_deagle", "weapon_revolver") },
-		new () { Name = "P2000/USP Tactical Expert", Description = "Kill 100 enemies with the P2000 or USP.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithAnyOfWeapons("weapon_hkp2000", "weapon_usp_silencer") },
-		new () { Name = "Glock-18 Expert", Description = "Kill 100 enemies with the Glock-18.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_glock") },
-		new () { Name = "P250 Expert", Description = "Kill 25 enemies with the P250.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_p250") },
-		new () { Name = "Dual Berettas Expert", Description = "Kill 25 enemies with the Dual Berettas.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_elite") },
-		new () { Name = "Five-SeveN Expert", Description = "Kill 25 enemies with the Five-SeveN.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_fiveseven") },
-		new () { Name = "AWP Expert", Description = "Kill 500 enemies with the AWP.", MaxProgress = 500, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_awp") },
-		new () { Name = "AK-47 Expert", Description = "Kill 1,000 enemies with the AK-47.", MaxProgress = 1_000, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_ak47") },
-		new () { Name = "M4 AR Expert", Description = "Kill 1,000 enemies with the M4 Assault Rifle.", MaxProgress = 1_000, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithAnyOfWeapons("weapon_m4a1", "weapon_m4a1_silencer") },
-		new () { Name = "AUG Expert", Description = "Kill 250 enemies with the AUG.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_aug") },
-		new () { Name = "SG553 Expert", Description = "Kill 100 enemies with the SG553.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_sg556") },
-		new () { Name = "SCAR-20 Expert", Description = "Kill 100 enemies with the SCAR-20.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_scar20") },
-		new () { Name = "Galil AR Expert", Description = "Kill 250 enemies with the Galil AR.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_galil") },
-		new () { Name = "FAMAS Expert", Description = "Kill 100 enemies with the FAMAS.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_famas") },
-		new () { Name = "SSG 08 Expert", Description = "Kill 100 enemies with the SSG 08.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_ssg08") },
-		new () { Name = "G3SG1 Expert", Description = "Kill 100 enemies with the G3SG1.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_g3sg1") },
-		new () { Name = "P90 Expert", Description = "Kill 500 enemies with the P90.", MaxProgress = 500, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_p90") },
-		new () { Name = "MP7 Expert", Description = "Kill 250 enemies with the MP7.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_mp7") },
-		new () { Name = "MP9 Expert", Description = "Kill 100 enemies with the MP9.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_mp9") },
-		new () { Name = "MAC-10 Expert", Description = "Kill 100 enemies with the MAC-10.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_mac10") },
-		new () { Name = "UMP-45 Expert", Description = "Kill 250 enemies with the UMP-45.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_ump45") },
-		new () { Name = "Nova Expert", Description = "Kill 100 enemies with the Nova.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_nova") },
-		new () { Name = "XM1014 Expert", Description = "Kill 200 enemies with the XM1014.", MaxProgress = 200, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_xm1014") },
-		new () { Name = "MAG-7 Expert", Description = "Kill 50 enemies with the MAG-7.", MaxProgress = 50, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_mag7") },
-		new () { Name = "M249 Expert", Description = "Kill 100 enemies with the M249.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_m249") },
-		new () { Name = "Negev Expert", Description = "Kill 100 enemies with the Negev.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_negev") },
-		new () { Name = "Tec-9 Expert", Description = "Kill 100 enemies with the Tec-9.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_tec9") },
-		new () { Name = "Sawed-Off Expert", Description = "Kill 50 enemies with the Sawed-Off.", MaxProgress = 10, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_sawedoff") },
-		new () { Name = "PP-Bizon Expert", Description = "Kill 250 enemies with the PP-Bizon.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_bizon") },
-		new () { Name = "Knife Expert", Description = "Kill 100 enemies with the Knife.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_knife") },
-		new () { Name = "HE Grenade Expert", Description = "Kill 100 enemies with the HE grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_hegrenade") },
-		new () { Name = "Flame Expert", Description = "Kill 100 enemies with the Molotov or Incendiary grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithAnyOfWeapons("weapon_molotov", "weapon_incgrenade") },
+		new () { Name = "Desert Eagle Expert", Description = "Kill 200 enemies with the Desert Eagle. Killing enemies with the R8 Revolver also count towards this achievement.", MaxProgress = 200, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_deagle", "weapon_revolver")] },
+		new () { Name = "P2000/USP Tactical Expert", Description = "Kill 100 enemies with the P2000 or USP.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_hkp2000", "weapon_usp_silencer")] },
+		new () { Name = "Glock-18 Expert", Description = "Kill 100 enemies with the Glock-18.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_glock")] },
+		new () { Name = "P250 Expert", Description = "Kill 25 enemies with the P250.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_p250")] },
+		new () { Name = "Dual Berettas Expert", Description = "Kill 25 enemies with the Dual Berettas.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_elite")] },
+		new () { Name = "Five-SeveN Expert", Description = "Kill 25 enemies with the Five-SeveN.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_fiveseven")] },
+		new () { Name = "AWP Expert", Description = "Kill 500 enemies with the AWP.", MaxProgress = 500, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_awp")] },
+		new () { Name = "AK-47 Expert", Description = "Kill 1,000 enemies with the AK-47.", MaxProgress = 1_000, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_ak47")] },
+		new () { Name = "M4 AR Expert", Description = "Kill 1,000 enemies with the M4 Assault Rifle.", MaxProgress = 1_000, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_m4a1", "weapon_m4a1_silencer")] },
+		new () { Name = "AUG Expert", Description = "Kill 250 enemies with the AUG.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_aug")] },
+		new () { Name = "SG553 Expert", Description = "Kill 100 enemies with the SG553.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_sg556")] },
+		new () { Name = "SCAR-20 Expert", Description = "Kill 100 enemies with the SCAR-20.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_scar20")] },
+		new () { Name = "Galil AR Expert", Description = "Kill 250 enemies with the Galil AR.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_galil")] },
+		new () { Name = "FAMAS Expert", Description = "Kill 100 enemies with the FAMAS.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_famas")] },
+		new () { Name = "SSG 08 Expert", Description = "Kill 100 enemies with the SSG 08.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_ssg08")] },
+		new () { Name = "G3SG1 Expert", Description = "Kill 100 enemies with the G3SG1.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_g3sg1")] },
+		new () { Name = "P90 Expert", Description = "Kill 500 enemies with the P90.", MaxProgress = 500, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_p90")] },
+		new () { Name = "MP7 Expert", Description = "Kill 250 enemies with the MP7.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_mp7")] },
+		new () { Name = "MP9 Expert", Description = "Kill 100 enemies with the MP9.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_mp9")] },
+		new () { Name = "MAC-10 Expert", Description = "Kill 100 enemies with the MAC-10.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_mac10")] },
+		new () { Name = "UMP-45 Expert", Description = "Kill 250 enemies with the UMP-45.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_ump45")] },
+		new () { Name = "Nova Expert", Description = "Kill 100 enemies with the Nova.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_nova")] },
+		new () { Name = "XM1014 Expert", Description = "Kill 200 enemies with the XM1014.", MaxProgress = 200, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_xm1014")] },
+		new () { Name = "MAG-7 Expert", Description = "Kill 50 enemies with the MAG-7.", MaxProgress = 50, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_mag7")] },
+		new () { Name = "M249 Expert", Description = "Kill 100 enemies with the M249.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_m249")] },
+		new () { Name = "Negev Expert", Description = "Kill 100 enemies with the Negev.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_negev")] },
+		new () { Name = "Tec-9 Expert", Description = "Kill 100 enemies with the Tec-9.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_tec9")] },
+		new () { Name = "Sawed-Off Expert", Description = "Kill 50 enemies with the Sawed-Off.", MaxProgress = 10, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_sawedoff")] },
+		new () { Name = "PP-Bizon Expert", Description = "Kill 250 enemies with the PP-Bizon.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_bizon")] },
+		new () { Name = "Knife Expert", Description = "Kill 100 enemies with the Knife.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_knife")] },
+		new () { Name = "HE Grenade Expert", Description = "Kill 100 enemies with the HE grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade")] },
+		new () { Name = "Flame Expert", Description = "Kill 100 enemies with the Molotov or Incendiary grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_molotov", "weapon_incgrenade")] },
 		// new () { Name = "Premature Burial", Description = "Kill an enemy with a grenade after dying.", MaxProgress = 1, Category = Category.WeaponSpecialist },
 		new () { Name = "Pistol Master", Description = "Unlock all pistol kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Desert Eagle Expert", "P2000/USP Tactical Expert", "Glock-18 Expert", "P250 Expert", "Dual Berettas Expert", "Five-SeveN Expert", "Tec-9 Expert"] },
 		new () { Name = "Rifle Master", Description = "Unlock all rifle kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["AK-47 Expert", "M4 AR Expert", "AUG Expert", "SG553 Expert", "SCAR-20 Expert", "Galil AR Expert", "FAMAS Expert", "SSG 08 Expert", "G3SG1 Expert", "AWP Expert"] },
 		new () { Name = "Sub-Machine Gun Master", Description = "Unlock all sub-machine gun kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["P90 Expert", "MP7 Expert", "MP9 Expert", "MAC-10 Expert", "UMP-45 Expert", "PP-Bizon Expert"] },
 		new () { Name = "Shotgun Master", Description = "Unlock all shotgun kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Nova Expert", "XM1014 Expert", "MAG-7 Expert", "Sawed-Off Expert"] },
 		new () { Name = "Master At Arms", Description = "Unlock every weapon kill achievement.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Pistol Master", "Rifle Master", "Sub-Machine Gun Master", "Shotgun Master", "Knife Expert", "HE Grenade Expert", "Flame Expert", "M249 Expert", "Negev Expert", "Zeus x27 Expert"] },
-		new () { Name = "Zeus x27 Expert", Description = "Kill 10 enemies with the Zeus x27.", MaxProgress = 10, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_taser") },
+		new () { Name = "Zeus x27 Expert", Description = "Kill 10 enemies with the Zeus x27.", MaxProgress = 10, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_taser")] },
 		// new () { Name = "Italy Map Veteran", Description = "Win 100 rounds on Italy.", MaxProgress = 1, Category = Category.GlobalExpertise },
 		// new () { Name = "Office Map Veteran", Description = "Win 100 rounds on Office.", MaxProgress = 1, Category = Category.GlobalExpertise },
 		// new () { Name = "Aztec Map Veteran", Description = "Win 100 rounds on Aztec.", MaxProgress = 1, Category = Category.GlobalExpertise },
@@ -445,6 +446,7 @@ public static class Achievements
 
 	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
+
 	public static Func<object?, bool> WithWeapon(string weapon) => data => data is string weaponName && weaponName.Equals(weapon, StringComparison.OrdinalIgnoreCase);
 	public static Func<object?, bool> WithAnyOfWeapons(params string[] weapons) => data => data is string weaponName && weapons.Any(w => weaponName.Equals(w, StringComparison.OrdinalIgnoreCase));
 
@@ -519,7 +521,7 @@ public static class Achievements
 
 	public static void OnEvent(Event eventName, object? data = null) {
 		foreach (Achievement achievement in AchievementList.ToList()) {
-			if (achievement.OnEvent == eventName && (achievement.Filter == null || achievement.Filter(data)))
+			if (achievement.OnEvent == eventName && (achievement.Filters == null || achievement.Filters.All(f => f(data))))
 				IncrementAchievementProgress(achievement.Name);
 		}
 	}
