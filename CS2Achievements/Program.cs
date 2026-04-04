@@ -20,6 +20,8 @@ class Program
 		Achievements.LoadAchievements();
 		Achievements.SaveAchievements();
 
+		Console.WriteLine($"Loaded {Achievements.AchievementList.Count} achievements.");
+
 		_gsl.NewGameState += OnNewGameState;
 		_gsl.GameEvent += OnGameEvent;
 		_gsl.BombStateUpdated += OnBombStateUpdated;
