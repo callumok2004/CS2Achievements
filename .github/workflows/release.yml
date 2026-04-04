@@ -34,7 +34,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.sha }}
-          name: ${{ github.sha }}
+          tag_name: build-${{ github.run_number }}
+          name: build-${{ github.run_number }}
           files: publish/CS2Achievements.exe
           generate_release_notes: false
