@@ -22,7 +22,8 @@ public enum Category
 public enum Event
 {
 	KilledPlayer,
-	RoundWon
+	RoundWon,
+	MatchWon
 }
 
 public struct Achievement
@@ -92,7 +93,7 @@ public static class Achievements
 		"weapon_hkp2000", // P2000
 		"weapon_usp_silencer", // USP-S
 		"weapon_elite", // Dual Berettas
-		"wewapon_p250", // P250
+		"weapon_p250", // P250
 		"weapon_tec9", // Tec-9
 		"weapon_cz75a", // CZ75-Auto
 		"weapon_fiveseven", // Five-SeveN
@@ -114,12 +115,13 @@ public static class Achievements
 		"weapon_m249", // M249
 		"weapon_negev", // Negev
 		// Rifle
-		"weapon_galil", // Galil AR
+		"weapon_galilar", // Galil AR
 		"weapon_famas", // FAMAS
 		"weapon_ak47", // AK-47
 		"weapon_m4a1", // M4A4
 		"weapon_m4a1_silencer", // M4A1-S
 		"weapon_ssg08", // SSG 08
+		"weapon_sg556", // SG 553
 		"weapon_aug", // AUG
 		"weapon_awp", // AWP
 		"weapon_g3sg1", // G3SG1
@@ -170,9 +172,9 @@ public static class Achievements
 		new () { Name = "Corpseman", Description = "Kill 500 enemies.", MaxProgress = 500, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Prerequisite = "Body Bagger" },
 		new () { Name = "God of War", Description = "Kill 10,000 enemies.", MaxProgress = 10_000, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Prerequisite = "Corpseman" },
 		// new () { Name = "Shot With Their Pants Down", Description = "Kill an enemy while they are reloading.", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Ballistic", Description = "In Classic Mode, Kill four enemy players whithin fifteen seconds.", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Ballistic", Description = "In Classic Mode, Kill four enemy players whithin fifteen seconds.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithNumKillsInSeconds(4, 15), WithGameMode(GameMode.Competitive)] },
 		// new () { Name = "Variety Hour", Description = "Get kills with five different guns in a single round.", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Battle Sight Zero", Description = "Kill 250 enemies with headshots.", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Battle Sight Zero", Description = "Kill 250 enemies with headshots.", MaxProgress = 250, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithHeadshot()] },
 		// new () { Name = "Shrapnelproof", Description = "Take 80 points of damage from enemy grenades and still survive the round.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Blind Ambition", Description = "Kill 25 enemies blinded by flashbangs.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
@@ -187,9 +189,9 @@ public static class Achievements
 		// new () { Name = "Hip Shot", Description = "Kill an enemy with an un-zoomed sniper rifle.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Snipe Hunter", Description = "Kill 100 zoomed-in enemy snipers.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Dead Man Stalking", Description = "Kill an enemy while at one health", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Street Fighter", Description = "Kill an enemy with a knife during the Pistol Round in Competitive mode.", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Street Fighter", Description = "Kill an enemy with a knife during the Pistol Round in Competitive mode.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_knife", "weapon_knife_t"), WithGameMode(GameMode.Competitive), OnFirstRound()] },
 		// new () { Name = "Akimbo King", Description = "Use Dual Berettas to kill an enemy player that is also wielding Dual Berettas .", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Three the Hard Way", Description = "Kill three enemies with a single HE grenade .", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Three the Hard Way", Description = "Kill three enemies with a single HE grenade .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithNumKillsInSeconds(3, 0)] },
 		// new () { Name = "Death From Above", Description = "Kill an enemy while you are airborne.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Bunny Hunt", Description = "Kill an airborne enemy.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Aerial Necrobatics", Description = "Kill an airborne enemy while you are also airborne.", MaxProgress = 1, Category = Category.CombatSkills },
@@ -254,14 +256,14 @@ public static class Achievements
 		new () { Name = "Inferno Map Veteran", Description = "Win 100 rounds on Inferno.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_inferno"), WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Nuke Map Veteran", Description = "Win 100 rounds on Nuke.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_nuke"), WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Train Map Veteran", Description = "Win 100 rounds on Train.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_train"), WithGameMode(GameMode.Competitive)] },
-		// new () { Name = "Shoots Vet", Description = "Win five matches in Arms Race mode on Shoots.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Baggage Claimer", Description = "Win five matches in Arms Race mode on Baggage.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Vacation", Description = "Win five matches on Lake.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "My House", Description = "Win five matches on Safehouse.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Run of the Mill", Description = "Win five matches on Sugarcane.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Marcsman", Description = "Win five matches on St. Marc.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Bank On It", Description = "Win five matches on Bank.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Shorttrain Map Veteran", Description = "Win five matches on Shorttrain.", MaxProgress = 1, Category = Category.GlobalExpertise },
+		// new () { Name = "Shoots Vet", Description = "Win five matches in Arms Race mode on Shoots.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "Baggage Claimer", Description = "Win five matches in Arms Race mode on Baggage.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "Vacation", Description = "Win five matches on Lake.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "My House", Description = "Win five matches on Safehouse.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "Run of the Mill", Description = "Win five matches on Sugarcane.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "Marcsman", Description = "Win five matches on St. Marc.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "Bank On It", Description = "Win five matches on Bank.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		// new () { Name = "Shorttrain Map Veteran", Description = "Win five matches on Shorttrain.", MaxProgress = 5, Category = Category.GlobalExpertise },
 		// new () { Name = "A World of Pane", Description = "Shoot out 14 windows in a single round on Office.", MaxProgress = 1, Category = Category.GlobalExpertise },
 		// new () { Name = "Tourist", Description = "Play a round on every Arms Race and Demolition map.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Denied!", Description = "Kill a player who is on gold knife level in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
@@ -520,4 +522,8 @@ public static class Achievements
 	public static Func<object?, bool> WithAnyOfMaps(params string[] maps) => data => maps.Any(m => CurrentMap.Equals(m, StringComparison.OrdinalIgnoreCase));
 	public static Func<object?, bool> WithGameMode(GameMode mode) => data => CurrentGameMode == mode;
 	public static Func<object?, bool> WithAnyOfGameModes(params GameMode[] modes) => data => modes.Contains(CurrentGameMode);
+	public static Func<object?, bool> WithHeadshot() => data => data is PlayerGotKill evnt && evnt.IsHeadshot;
+	public static Func<object?, bool> WithAce() => data => data is PlayerGotKill evnt && evnt.IsAce;
+	public static Func<object?, bool> OnFirstRound() => data => IsFirstRound;
+	public static Func<object?, bool> WithNumKillsInSeconds(int numKills, int seconds) => data => data is PlayerGotKill evnt && RecentKills.Count(k => (DateTime.Now - k.Timestamp).TotalSeconds <= seconds) >= numKills;
 }

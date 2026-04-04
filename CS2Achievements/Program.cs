@@ -15,6 +15,9 @@ public static class Global {
 	public static PlayerTeam? CurrentTeam = null;
 	public static string? SteamID = null;
 	public static Player? Self = null;
+	public static bool IsFirstRound;
+	public static bool IsLastRound;
+	public static List<RecentKill> RecentKills = [];
 
 	public static ILogger Logger { get; } = new LoggerConfiguration()
 		.MinimumLevel.Verbose()
@@ -22,6 +25,11 @@ public static class Global {
 		.WriteTo.Console()
 		.CreateLogger();
 
+}
+
+public struct RecentKill {
+	public PlayerGotKill Event;
+	public DateTime Timestamp;
 }
 
 public class Program
@@ -121,15 +129,17 @@ public class Program
 	}
 
 	private static void OnPlayerGotKill(PlayerGotKill game_event) {
-		// Logger.Debug($"PlayerGotKill event: Player={game_event.Player.Name}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}, IsAce={game_event.IsAce}");
+		Logger.Debug($"PlayerGotKill event: Player={game_event.Player.Name}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}, IsAce={game_event.IsAce}");
 		if (game_event.Player.SteamID == SteamID) {
+			RecentKills.Add(new () { Event = game_event, Timestamp = DateTime.Now });
+			if (RecentKills.Count > 10) RecentKills.RemoveAt(0);
 			Achievements.OnEvent(Event.KilledPlayer, game_event);
 			Achievements.AddUniqueItem("Expert Marksman", game_event.Weapon.Name);
 		}
 	}
 
 	private static void OnKillFeed(KillFeed game_event) {
-		// Console.WriteLine($"{game_event.Killer.Name} killed {game_event.Victim.Name} with {game_event.Weapon.Name}{(game_event.IsHeadshot ? " as a headshot." : ".")}");
+		// Logger.Debug($"KillFeed event: Killer={game_event.Killer?.Weapons}, Victim={game_event.Victim?.Weapons}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}");
 	}
 
 	private static void OnPlayerWeaponsPickedUp(PlayerWeaponsPickedUp game_event) {
@@ -151,13 +161,19 @@ public class Program
 		// 	Console.WriteLine($"Last round {game_event.Round} started.");
 		// else
 		// 	Console.WriteLine($"A new round {game_event.Round} started.");
+
+		IsFirstRound = game_event.IsFirstRound;
+		IsLastRound = game_event.IsLastRound;
 	}
 
 	private static void OnRoundConcluded(RoundConcluded game_event) {
 		// Console.WriteLine($"Round {game_event.Round} concluded by {game_event.WinningTeam} for reason: {game_event.RoundConclusionReason}");
 
-		if (game_event.WinningTeam == CurrentTeam)
+		if (game_event.WinningTeam == CurrentTeam) {
 			Achievements.OnEvent(Event.RoundWon, game_event);
+			if (game_event.IsLastRound)
+				Achievements.OnEvent(Event.MatchWon, game_event);
+		}
 	}
 }
 
