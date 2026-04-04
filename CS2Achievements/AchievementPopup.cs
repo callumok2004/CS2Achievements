@@ -27,11 +27,13 @@ namespace CS2Achievements
 		}
 
 		private readonly System.Windows.Forms.Timer closeTimer;
+		public string Title => _title;
 		private readonly string _title;
-		private readonly string _description;
+		public string AchievementName { get; }
+		private string _description;
 		private readonly Image? _icon;
-		private readonly int _progress;
-		private readonly int _maxProgress;
+		private int _progress;
+		private int _maxProgress;
 
 		private static readonly Color BgColor       = Color.FromArgb(22, 25, 31);
 		private static readonly Color IconBgColor   = Color.FromArgb(13, 15, 19);
@@ -41,7 +43,8 @@ namespace CS2Achievements
 		private static readonly Color BarFillColor  = Color.FromArgb(195, 158, 35);
 		private static readonly Color BorderColor   = Color.FromArgb(52, 56, 65);
 
-		public AchievementPopup(string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
+		public AchievementPopup(string achievementName, string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
+			AchievementName = achievementName;
 			_title = title;
 			_description = description;
 			_icon = icon;
@@ -69,6 +72,16 @@ namespace CS2Achievements
 				if (!IsDisposed) PopupStack.StartLeave(this);
 			};
 			closeTimer.Start();
+		}
+
+		public void Update(string description, int progress, int maxProgress) {
+			_description = description;
+			_progress = progress;
+			_maxProgress = maxProgress;
+			closeTimer.Stop();
+			closeTimer.Start();
+			IsLeaving = false;
+			Invalidate();
 		}
 
 		protected override void OnPaint(PaintEventArgs e) {
@@ -192,11 +205,16 @@ namespace CS2Achievements
 			UpdatePositions();
 		}
 
-		public static void Show(string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
+		public static void Show(string achievementName, string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
 			EnsureUIThread();
 			_syncContext!.Post(_ => {
 				EnsureAnimationTimer();
-				var popup = new AchievementPopup(title, description, icon, progress, maxProgress);
+				var existing = popups.FirstOrDefault(p => !p.IsDisposed && !p.IsLeaving && p.AchievementName == achievementName);
+				if (existing != null) {
+					existing.Update(description, progress, maxProgress);
+					return;
+				}
+				var popup = new AchievementPopup(achievementName, title, description, icon, progress, maxProgress);
 				popup.FormClosed += (s, e) => { popups.Remove(popup); UpdatePositions(); };
 				popups.Add(popup);
 				UpdatePositions();

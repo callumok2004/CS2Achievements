@@ -2,6 +2,7 @@ using CounterStrike2GSI.EventMessages;
 
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 
 namespace CS2Achievements;
 
@@ -42,21 +43,38 @@ struct Achievement
 	/// </summary>
 	public Event? OnEvent { get; set; }
 	/// <summary>
-	/// Complete?
+	/// Complete? Derived on load, not persisted.
 	/// </summary>
+	[JsonIgnore]
 	public bool Complete { get; set; }
 	/// <summary>
 	/// Current progress towards completion
 	/// </summary>
 	public int Progress { get; set; }
 	/// <summary>
-	/// Amount of progress needed for completion
+	/// Amount of progress needed for completion. Derived on load, not persisted.
 	/// </summary>
+	[JsonIgnore]
 	public int MaxProgress { get; set; }
 	/// <summary>
 	/// Name of the achievement that must be completed before this one shows progress popups
 	/// </summary>
 	public string? Prerequisite { get; set; }
+	/// <summary>
+	/// Optional filter: event data must pass this predicate for progress to increment
+	/// </summary>
+	[JsonIgnore]
+	public Func<object?, bool>? Filter { get; set; }
+	/// <summary>
+	/// Required items to collect for set-based achievements (e.g. weapon names).
+	/// MaxProgress and Progress are derived automatically. Defined in code only.
+	/// </summary>
+	[JsonIgnore]
+	public HashSet<string>? Items { get; set; }
+	/// <summary>
+	/// Persisted set of items already collected. Populated automatically by OnEvent.
+	/// </summary>
+	public HashSet<string>? CollectedItems { get; set; }
 }
 
 public static class Achievements
@@ -107,10 +125,10 @@ public static class Achievements
 		// new () { Name = "Battle Sight Zero", Description = "Kill 250 enemies with headshots.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Shrapnelproof", Description = "Take 80 points of damage from enemy grenades and still survive the round.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Blind Ambition", Description = "Kill 25 enemies blinded by flashbangs.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from aflashbang .", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
+		// new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from a flashbang .", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Spray and Pray", Description = "Kill two enemies while you are blinded from a flashbang .", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Friendly Firearms", Description = "Kill 100 enemies with enemy weapons.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Complete = false, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filter = data => false, Items = ["weapon_knife", "weapon_awp"]}, // todo
 		// new () { Name = "Make the Cut", Description = "Win a knife fight.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "The Bleeding Edge", Description = "Win 100 knife fights.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Defuse This!", Description = "Kill the defuser with an HE grenade .", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
@@ -145,7 +163,7 @@ public static class Achievements
 		// new () { Name = "P250 Expert", Description = "Kill 25 enemies with the P250.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "Dual Berettas Expert", Description = "Kill 25 enemies with the Dual Berettas.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "Five-SeveN Expert", Description = "Kill 25 enemies with the Five-SeveN.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
-		// new () { Name = "AWP Expert", Description = "Kill 500 enemies with the AWP.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
+		new () { Name = "AWP Expert", Description = "Kill 500 enemies with the AWP.", Complete = false, Progress = 0, MaxProgress = 500, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_awp") },
 		// new () { Name = "AK-47 Expert", Description = "Kill 1,000 enemies with the AK-47.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "M4 AR Expert", Description = "Kill 1,000 enemies with the M4 Assault Rifle.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "AUG Expert", Description = "Kill 250 enemies with the AUG.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
@@ -168,7 +186,7 @@ public static class Achievements
 		// new () { Name = "Tec-9 Expert", Description = "Kill 100 enemies with the Tec-9.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "Sawed-Off Expert", Description = "Kill 50 enemies with the Sawed-Off.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "PP-Bizon Expert", Description = "Kill 250 enemies with the PP-Bizon.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
-		// new () { Name = "Knife Expert", Description = "Kill 100 enemies with the Knife.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
+		new () { Name = "Knife Expert", Description = "Kill 100 enemies with the Knife.", Complete = false, Progress = 0, MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filter = WithWeapon("weapon_knife") },
 		// new () { Name = "HE Grenade Expert", Description = "Kill 100 enemies with theHE grenade.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "Flame Expert", Description = "Kill 100 enemies with the Molotov or Incendiary grenade.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
 		// new () { Name = "Premature Burial", Description = "Kill an enemy with a grenade after dying.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.WeaponSpecialist },
@@ -284,8 +302,14 @@ public static class Achievements
 				int idx = AchievementList.FindIndex(a => string.Equals(a.Name, loaded.Name, StringComparison.OrdinalIgnoreCase));
 				if (idx >= 0) {
 					var a = AchievementList[idx];
-					a.Progress = loaded.Progress;
-					a.Complete = loaded.Complete;
+					a.CollectedItems = loaded.CollectedItems;
+					if (a.Items != null) {
+						a.MaxProgress = a.Items.Count;
+						a.Progress = a.CollectedItems?.Count ?? 0;
+					} else {
+						a.Progress = loaded.Progress;
+					}
+					a.Complete = a.MaxProgress > 0 && a.Progress >= a.MaxProgress;
 					AchievementList[idx] = a;
 					updated++;
 				}
@@ -340,10 +364,10 @@ public static class Achievements
 			achievement.Progress = achievement.MaxProgress;
 			achievement.Complete = true;
 			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
-			PopupStack.Show($"Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
+			PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
 		}
 		else if (prerequisiteMet)
-			PopupStack.Show(achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
+			PopupStack.Show(achievement.Name, achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
 
 		AchievementList[idx] = achievement;
 		SaveAchievements();
@@ -380,9 +404,56 @@ public static class Achievements
 
 	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
-	public static void OnEvent(Event eventName) {
+	public static Func<object?, bool> WithWeapon(string weapon) => data => data is string weaponName && weaponName.Equals(weapon, StringComparison.OrdinalIgnoreCase);
+
+	public static void AddUniqueItem(string achievementName, string item) {
+		int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
+		if (idx == -1) {
+			Console.WriteLine($"Achievement '{achievementName}' not found.");
+			return;
+		}
+
+		var achievement = AchievementList[idx];
+		if (achievement.Complete) {
+			Console.WriteLine($"Achievement '{achievement.Name}' is already complete.");
+			return;
+		}
+
+		if (achievement.Items != null && !achievement.Items.Contains(item)) {
+			Console.WriteLine($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
+			return;
+		}
+
+		achievement.CollectedItems ??= [];
+		if (!achievement.CollectedItems.Add(item)) {
+			Console.WriteLine($"Item '{item}' already collected for achievement '{achievement.Name}'.");
+			return;
+		}
+
+		if (achievement.Items != null)
+			achievement.MaxProgress = achievement.Items.Count;
+		achievement.Progress = achievement.CollectedItems.Count;
+		Console.WriteLine($"Item '{item}' added to '{achievement.Name}'. Progress: {achievement.Progress}/{achievement.MaxProgress}");
+
+		bool prerequisiteMet = achievement.Prerequisite == null ||
+			AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
+
+		if (achievement.Progress >= achievement.MaxProgress) {
+			achievement.Progress = achievement.MaxProgress;
+			achievement.Complete = true;
+			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+			PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
+		}
+		else if (prerequisiteMet)
+			PopupStack.Show(achievement.Name, achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
+
+		AchievementList[idx] = achievement;
+		SaveAchievements();
+	}
+
+	public static void OnEvent(Event eventName, object? data = null) {
 		foreach (Achievement achievement in AchievementList.ToList()) {
-			if (achievement.OnEvent == eventName)
+			if (achievement.OnEvent == eventName && (achievement.Filter == null || achievement.Filter(data)))
 				IncrementAchievementProgress(achievement.Name);
 		}
 	}

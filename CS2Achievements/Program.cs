@@ -65,8 +65,10 @@ class Program
 	private static void OnPlayerGotKill(PlayerGotKill game_event) {
 		// Console.WriteLine($"The player {game_event.Player.Name} earned a {(game_event.IsHeadshot ? "headshot " : "")}kill with {game_event.Weapon.Name}!" + (game_event.IsAce ? " And it was an ACE!" : ""));
 		Console.WriteLine($"{game_event.Player.Name} got a kill with {game_event.Weapon.Name}.");
-		if (game_event.Player == self)
-			Achievements.OnEvent(Event.KilledPlayer);
+		if (game_event.Player == self) {
+			Achievements.OnEvent(Event.KilledPlayer, game_event.Weapon.Name);
+			Achievements.AddUniqueItem("Expert Marksman", game_event.Weapon.Name);
+		}
 	}
 
 	private static void OnPlayerDied(PlayerDied game_event) {
