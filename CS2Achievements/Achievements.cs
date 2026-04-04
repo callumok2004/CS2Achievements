@@ -1,6 +1,7 @@
 using CounterStrike2GSI.EventMessages;
 
 using System.Reflection;
+using System.Security.Cryptography;
 
 namespace CS2Achievements;
 
@@ -52,6 +53,10 @@ struct Achievement
 	/// Amount of progress needed for completion
 	/// </summary>
 	public int MaxProgress { get; set; }
+	/// <summary>
+	/// Name of the achievement that must be completed before this one shows progress popups
+	/// </summary>
+	public string? Prerequisite { get; set; }
 }
 
 public static class Achievements
@@ -94,8 +99,8 @@ public static class Achievements
 		// new () { Name = "Black Bag Operation", Description = "Win a round without making any footstep noise, killing at least one enemy.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "The Frugal Beret", Description = "Win ten rounds without dying or spending any cash in Classic mode.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.TeamTactics },
 		new () { Name = "Body Bagger", Description = "Kill 25 enemies.", Complete = false, Progress = 0, MaxProgress = 25, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer },
-		new () { Name = "Corpseman", Description = "Kill 500 enemies.", Complete = false, Progress = 0, MaxProgress = 500, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer },
-		new () { Name = "God of War", Description = "Kill 10,000 enemies.", Complete = false, Progress = 0, MaxProgress = 10_000, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer },
+		new () { Name = "Corpseman", Description = "Kill 500 enemies.", Complete = false, Progress = 0, MaxProgress = 500, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Prerequisite = "Body Bagger" },
+		new () { Name = "God of War", Description = "Kill 10,000 enemies.", Complete = false, Progress = 0, MaxProgress = 10_000, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Prerequisite = "Corpseman" },
 		// new () { Name = "Shot With Their Pants Down", Description = "Kill an enemy while they are reloading.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Ballistic", Description = "In Classic Mode, Kill four enemy players whithin fifteen seconds.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Variety Hour", Description = "Get kills with five different guns in a single round.", Complete = false, Progress = 0, MaxProgress = 1, Category = Category.CombatSkills },
@@ -278,7 +283,10 @@ public static class Achievements
 			foreach (var loaded in loadedAchievements) {
 				int idx = AchievementList.FindIndex(a => string.Equals(a.Name, loaded.Name, StringComparison.OrdinalIgnoreCase));
 				if (idx >= 0) {
-					AchievementList[idx] = loaded;
+					var a = AchievementList[idx];
+					a.Progress = loaded.Progress;
+					a.Complete = loaded.Complete;
+					AchievementList[idx] = a;
 					updated++;
 				}
 				else {
@@ -296,6 +304,16 @@ public static class Achievements
 		// 	var achievement = AchievementList[0];
 		// 	PopupStack.Show($"{achievement.Name}", $"Progress: {achievement.Progress}/{achievement.MaxProgress}", GetAchievementIcon(achievement.Name));
 		// }
+
+		// new Thread(() => {
+		// 	while (true) {
+		// 		Thread.Sleep(new Random().Next(500, 3000));
+		// 		if (AchievementList.Count > 0) {
+		// 			var achievement = AchievementList[RandomNumberGenerator.GetInt32(AchievementList.Count)];
+		// 			PopupStack.Show(achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
+		// 		}
+		// 	}
+		// }).Start();
 	}
 
 	public static void IncrementAchievementProgress(string achievementName, int amount = 1) {
@@ -314,14 +332,18 @@ public static class Achievements
 
 		achievement.Progress += amount;
 		Console.WriteLine($"Progress for achievement '{achievement.Name}' increased by {amount}. Current progress: {achievement.Progress}/{achievement.MaxProgress}");
+
+		bool prerequisiteMet = achievement.Prerequisite == null ||
+			AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
+
 		if (achievement.Progress >= achievement.MaxProgress) {
 			achievement.Progress = achievement.MaxProgress;
 			achievement.Complete = true;
 			Console.WriteLine($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
-			PopupStack.Show($"Achievement Unlocked!", $"{achievement.Name}: {achievement.Description}");
+			PopupStack.Show($"Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
 		}
-		else
-			PopupStack.Show($"{achievement.Name}", $"Progress: {achievement.Progress}/{achievement.MaxProgress}");
+		else if (prerequisiteMet)
+			PopupStack.Show(achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
 
 		AchievementList[idx] = achievement;
 		SaveAchievements();

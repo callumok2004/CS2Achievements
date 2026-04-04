@@ -1,10 +1,20 @@
+using System.ComponentModel;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace CS2Achievements
 {
 	public class AchievementPopup : Form
 	{
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+		public int TargetY { get; set; }
+
+		[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+		public bool IsLeaving { get; set; }
+
 		protected override bool ShowWithoutActivation => true;
 
 		protected override CreateParams CreateParams {
@@ -16,57 +26,87 @@ namespace CS2Achievements
 			}
 		}
 
-		private System.Windows.Forms.Timer closeTimer;
+		private readonly System.Windows.Forms.Timer closeTimer;
+		private readonly string _title;
+		private readonly string _description;
+		private readonly Image? _icon;
+		private readonly int _progress;
+		private readonly int _maxProgress;
 
-		public AchievementPopup(string title, string description, Image? icon = null) {
+		private static readonly Color BgColor       = Color.FromArgb(22, 25, 31);
+		private static readonly Color IconBgColor   = Color.FromArgb(13, 15, 19);
+		private static readonly Color TitleColor    = Color.FromArgb(220, 220, 215);
+		private static readonly Color DescColor     = Color.FromArgb(160, 150, 120);
+		private static readonly Color BarBgColor    = Color.FromArgb(42, 46, 54);
+		private static readonly Color BarFillColor  = Color.FromArgb(195, 158, 35);
+		private static readonly Color BorderColor   = Color.FromArgb(52, 56, 65);
+
+		public AchievementPopup(string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
+			_title = title;
+			_description = description;
+			_icon = icon;
+			_progress = progress;
+			_maxProgress = maxProgress;
+
 			DoubleBuffered = true;
-			SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+			SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
 			FormBorderStyle = FormBorderStyle.None;
 			StartPosition = FormStartPosition.Manual;
 			ShowInTaskbar = false;
 			TopMost = true;
-			BackColor = Color.FromArgb(32, 32, 32);
-			Width = 350;
-			Height = 100;
+			BackColor = BgColor;
+			Width = 360;
+			Height = 90;
 
 			var screen = Screen.PrimaryScreen!.WorkingArea;
-			Location = new Point(screen.Right - Width - 10, screen.Bottom - Height - 10);
+			TargetY = screen.Bottom;
+			Location = new Point(screen.Right - Width - 10, screen.Bottom);
 
-			if (icon != null) {
-				var pic = new PictureBox {
-					Image = icon,
-					SizeMode = PictureBoxSizeMode.Zoom,
-					Location = new Point(10, 10),
-					Size = new Size(80, 80)
-				};
-				Controls.Add(pic);
-			}
-
-			Controls.Add(new Label {
-				Text = title,
-				Font = new Font(FontFamily.GenericSansSerif, 11, FontStyle.Bold),
-				Location = new Point(icon != null ? 100 : 10, 10),
-				AutoSize = true,
-				ForeColor = Color.Gold,
-				BackColor = Color.FromArgb(32, 32, 32)
-			});
-
-			Controls.Add(new Label {
-				Text = description,
-				Font = new Font(FontFamily.GenericSansSerif, 9, FontStyle.Regular),
-				Location = new Point(icon != null ? 100 : 10, 40),
-				Size = new Size(Width - (icon != null ? 110 : 20), 50),
-				ForeColor = Color.White,
-				BackColor = Color.FromArgb(32, 32, 32)
-			});
-
-			closeTimer = new System.Windows.Forms.Timer { Interval = 3500 };
+			closeTimer = new System.Windows.Forms.Timer { Interval = 4000 };
 			closeTimer.Tick += (s, e) => {
 				closeTimer.Stop();
 				closeTimer.Dispose();
-				if (!IsDisposed) Close();
+				if (!IsDisposed) PopupStack.StartLeave(this);
 			};
 			closeTimer.Start();
+		}
+
+		protected override void OnPaint(PaintEventArgs e) {
+			var g = e.Graphics;
+			g.SmoothingMode = SmoothingMode.AntiAlias;
+			g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+			g.Clear(BgColor);
+
+			const int iconAreaW = 80;
+			g.FillRectangle(new SolidBrush(IconBgColor), 0, 0, iconAreaW, Height);
+			if (_icon != null) {
+				const int pad = 7;
+				g.DrawImage(_icon, new Rectangle(pad, pad, iconAreaW - pad * 2, Height - pad * 2));
+			}
+
+			g.DrawLine(new Pen(BorderColor, 1), iconAreaW, 0, iconAreaW, Height);
+
+			const int cx = iconAreaW + 12;
+			int cw = Width - cx - 10;
+
+			using var titleFont = new Font("Segoe UI", 10.5f, FontStyle.Bold, GraphicsUnit.Point);
+			g.DrawString(_title, titleFont, new SolidBrush(TitleColor), cx, 10);
+
+			using var descFont = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
+			string descText = _maxProgress > 0 ? $"{_description}  ({_progress}/{_maxProgress})" : _description;
+			g.DrawString(descText, descFont, new SolidBrush(DescColor), cx, 36);
+
+			if (_maxProgress > 0) {
+				const int barH = 4;
+				int barY = Height - 14;
+				float fraction = Math.Clamp((float)_progress / _maxProgress, 0f, 1f);
+				g.FillRectangle(new SolidBrush(BarBgColor), cx, barY, cw, barH);
+				if (fraction > 0)
+					g.FillRectangle(new SolidBrush(BarFillColor), cx, barY, (int)(cw * fraction), barH);
+			}
+
+			g.DrawRectangle(new Pen(BorderColor, 1), 0, 0, Width - 1, Height - 1);
 		}
 	}
 
@@ -76,6 +116,15 @@ namespace CS2Achievements
 		private static readonly int popupSpacing = 10;
 		private static SynchronizationContext? _syncContext;
 		private static Thread? _uiThread;
+		private static System.Windows.Forms.Timer? _animationTimer;
+		private const float LerpSpeed = 0.18f;
+
+		[DllImport("user32.dll")]
+		private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+		private const uint SWP_NOMOVE = 0x0002;
+		private const uint SWP_NOSIZE = 0x0001;
+		private const uint SWP_NOACTIVATE = 0x0010;
+		private static readonly IntPtr HWND_TOPMOST = new(-1);
 
 		private static void EnsureUIThread() {
 			if (_uiThread != null && _uiThread.IsAlive) return;
@@ -95,10 +144,59 @@ namespace CS2Achievements
 			ready.Wait();
 		}
 
-		public static void Show(string title, string description, Image? icon = null) {
+		private static void EnsureAnimationTimer() {
+			if (_animationTimer != null) return;
+			_animationTimer = new System.Windows.Forms.Timer { Interval = 16 };
+			_animationTimer.Tick += AnimationTick;
+			_animationTimer.Start();
+		}
+
+		private static void AnimationTick(object? sender, EventArgs e) {
+			var screen = Screen.PrimaryScreen!.WorkingArea;
+			foreach (var popup in popups.ToList()) {
+				if (popup.IsDisposed) continue;
+				int current = popup.Top;
+				int target = popup.TargetY;
+				int next = Math.Abs(current - target) > 1
+					? (int)Math.Round(current + (target - current) * LerpSpeed)
+					: target;
+				popup.Top = next;
+					// Once a leaving popup is fully off screen, close it
+				if (popup.IsLeaving && next >= screen.Bottom + popup.Height) {
+					popups.Remove(popup);
+					popup.Close();
+					UpdatePositions();
+				}
+			}
+			UpdateZOrder();
+		}
+
+		private static void UpdateZOrder() {
+			IntPtr insertAfter = HWND_TOPMOST;
+			var staying = popups.Where(p => !p.IsDisposed && !p.IsLeaving).ToList();
+			var leaving = popups.Where(p => !p.IsDisposed && p.IsLeaving).ToList();
+			foreach (var p in staying) {
+				SetWindowPos(p.Handle, insertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+				insertAfter = p.Handle;
+			}
+			foreach (var p in leaving) {
+				SetWindowPos(p.Handle, insertAfter, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+				insertAfter = p.Handle;
+			}
+		}
+
+		public static void StartLeave(AchievementPopup popup) {
+			if (popup.IsDisposed || popup.IsLeaving) return;
+			popup.IsLeaving = true;
+			popup.TargetY = Screen.PrimaryScreen!.WorkingArea.Bottom + popup.Height + 10;
+			UpdatePositions();
+		}
+
+		public static void Show(string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
 			EnsureUIThread();
 			_syncContext!.Post(_ => {
-				var popup = new AchievementPopup(title, description, icon);
+				EnsureAnimationTimer();
+				var popup = new AchievementPopup(title, description, icon, progress, maxProgress);
 				popup.FormClosed += (s, e) => { popups.Remove(popup); UpdatePositions(); };
 				popups.Add(popup);
 				UpdatePositions();
@@ -109,10 +207,12 @@ namespace CS2Achievements
 		private static void UpdatePositions() {
 			var screen = Screen.PrimaryScreen!.WorkingArea;
 			int y = screen.Bottom - 10;
+			// Only staying popups occupy stack positions; leaving popups keep their own target (screen.Bottom)
 			for (int i = popups.Count - 1; i >= 0; i--) {
 				var p = popups[i];
+				if (p.IsLeaving) continue;
 				y -= p.Height;
-				p.Location = new Point(screen.Right - p.Width - 10, y);
+				p.TargetY = y;
 				y -= popupSpacing;
 			}
 		}
