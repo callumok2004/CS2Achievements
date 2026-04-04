@@ -150,7 +150,7 @@ public static class Achievements
 		// new () { Name = "Freed With Speed", Description = "Rescue all hostages within 90 seconds.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Cowboy Diplomacy", Description = "Rescue 100 hostages.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "SAR Czar", Description = "Rescue 500 hostages.", MaxProgress = 1, Category = Category.TeamTactics },
-		new () { Name = "Newb World Order", Description = "Win ten rounds.", MaxProgress = 100, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Newb World Order", Description = "Win ten rounds.", MaxProgress = 10, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Pro-moted", Description = "Win 200 rounds.", MaxProgress = 200, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Leet-er of Men", Description = "Win 5,000 rounds.", MaxProgress = 5_000, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
 		// new () { Name = "Blitzkrieg", Description = "Win a round against five enemies in less than thirty seconds.", MaxProgress = 1, Category = Category.TeamTactics },
