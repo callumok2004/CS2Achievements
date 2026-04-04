@@ -12,6 +12,7 @@ public static class Global {
 	public static CounterStrike2GSI.GameState? CurrentGameState;
 	public static GameMode CurrentGameMode = GameMode.Undefined;
 	public static string CurrentMap = string.Empty;
+	public static string? SteamID = null;
 
 	public static ILogger Logger { get; } = new LoggerConfiguration()
 		.MinimumLevel.Verbose()
@@ -24,7 +25,6 @@ public static class Global {
 public class Program
 {
 	static GameStateListener? _gsl;
-	static Player? self;
 
 	static void Main(string[] args) {
 		_gsl = new GameStateListener(4000);
@@ -38,6 +38,14 @@ public class Program
 		Achievements.SaveAchievements();
 
 		Logger.Information("Loaded {Count} achievements.", Achievements.AchievementList.Count.ToString());
+
+		try {
+			SteamID = SteamIDReader.GetCurrentSteamID64String();
+			Logger.Information("Current SteamID64: {SteamID}", SteamID);
+		}
+		catch (Exception ex) {
+			Logger.Error("Failed to get SteamID: {Message}", ex.Message);
+		}
 
 		_gsl.NewGameState += OnNewGameState;
 		_gsl.BombStateUpdated += OnBombStateUpdated;
@@ -57,6 +65,25 @@ public class Program
 		}
 		Logger.Information("Listening for game integration calls...");
 
+		new Thread(() => {
+			while (true) {
+				try {
+					string currentSteamID = SteamIDReader.GetCurrentSteamID64String();
+					if (currentSteamID != SteamID) {
+						SteamID = currentSteamID;
+						Logger.Information("SteamID changed: {SteamID}", SteamID);
+					}
+				}
+				catch (Exception ex) {
+					SteamID = null;
+					Logger.Error("Failed to get SteamID: {Message}", ex.Message);
+				}
+				Thread.Sleep(10000);
+			}
+		}) {
+			IsBackground = true
+		}.Start();
+
 		Logger.Information("Press ESC to quit.");
 		do {
 			while (!Console.KeyAvailable)
@@ -65,10 +92,7 @@ public class Program
 	}
 
 	private static void OnNewGameState(CounterStrike2GSI.GameState gamestate) {
-		if (self == null) { // apparently there is no reliable way to get ourself, and gamestate can contain other players, especially when spectating :(
-			self = gamestate.Player;
-			Logger.Warning("Identified self as {PlayerName} ({SteamID}). If this is incorrect, relaunch while at the main menu or before launching the game.", self.Name, self.SteamID);
-		}
+		SteamID ??= gamestate.Player?.SteamID;
 		CurrentGameState = gamestate;
 	}
 
@@ -92,7 +116,7 @@ public class Program
 
 	private static void OnPlayerGotKill(PlayerGotKill game_event) {
 		// Logger.Debug($"PlayerGotKill event: Player={game_event.Player.Name}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}, IsAce={game_event.IsAce}");
-		if (game_event.Player.SteamID == self?.SteamID) {
+		if (game_event.Player.SteamID == SteamID) {
 			Achievements.OnEvent(Event.KilledPlayer, game_event);
 			Achievements.AddUniqueItem("Expert Marksman", game_event.Weapon.Name);
 		}
