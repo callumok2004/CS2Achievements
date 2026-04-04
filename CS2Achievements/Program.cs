@@ -12,7 +12,9 @@ public static class Global {
 	public static CounterStrike2GSI.GameState? CurrentGameState;
 	public static GameMode CurrentGameMode = GameMode.Undefined;
 	public static string CurrentMap = string.Empty;
+	public static PlayerTeam? CurrentTeam = null;
 	public static string? SteamID = null;
+	public static Player? Self = null;
 
 	public static ILogger Logger { get; } = new LoggerConfiguration()
 		.MinimumLevel.Verbose()
@@ -92,8 +94,12 @@ public class Program
 	}
 
 	private static void OnNewGameState(CounterStrike2GSI.GameState gamestate) {
-		SteamID ??= gamestate.Player?.SteamID;
+		if (SteamID == null) return;
 		CurrentGameState = gamestate;
+
+		if (gamestate.Player == null || gamestate.Player.SteamID != SteamID) return;
+		Self = gamestate.Player;
+		CurrentTeam = gamestate.Player.Team;
 	}
 
 	private static void OnBombStateUpdated(BombStateUpdated game_event) {
@@ -148,7 +154,10 @@ public class Program
 	}
 
 	private static void OnRoundConcluded(RoundConcluded game_event) {
-		Console.WriteLine($"Round {game_event.Round} concluded by {game_event.WinningTeam} for reason: {game_event.RoundConclusionReason}");
+		// Console.WriteLine($"Round {game_event.Round} concluded by {game_event.WinningTeam} for reason: {game_event.RoundConclusionReason}");
+
+		if (game_event.WinningTeam == CurrentTeam)
+			Achievements.OnEvent(Event.RoundWon, game_event);
 	}
 }
 

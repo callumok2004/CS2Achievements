@@ -21,7 +21,8 @@ public enum Category
 [Flags]
 public enum Event
 {
-	KilledPlayer
+	KilledPlayer,
+	RoundWon
 }
 
 public struct Achievement
@@ -129,7 +130,7 @@ public static class Achievements
 	];
 
 	public static readonly List<Achievement> AchievementList = [
-		// new () { Name = "Awardist", Description = "Earn 100 achievements.", MaxProgress = 100, Category = Category.TeamTactics },
+		new () { Name = "Awardist", Description = "Earn 100 achievements.", MaxProgress = 100, Category = Category.TeamTactics },
 		// new () { Name = "Someone Set Up Us The Bomb", Description = "Win a round by planting a bomb.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Rite of First Defusal", Description = "Win a round by defusing a bomb.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Second to None", Description = "Successfully defuse a bomb with less than one second remaining.", MaxProgress = 1, Category = Category.TeamTactics },
@@ -147,9 +148,9 @@ public static class Achievements
 		// new () { Name = "Freed With Speed", Description = "Rescue all hostages within 90 seconds.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Cowboy Diplomacy", Description = "Rescue 100 hostages.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "SAR Czar", Description = "Rescue 500 hostages.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Newb World Order", Description = "Win ten rounds.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Pro-moted", Description = "Win 200 rounds.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Leet-er of Men", Description = "Win 5,000 rounds.", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "Newb World Order", Description = "Win ten rounds.", MaxProgress = 100, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Pro-moted", Description = "Win 200 rounds.", MaxProgress = 200, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Leet-er of Men", Description = "Win 5,000 rounds.", MaxProgress = 5_000, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
 		// new () { Name = "Blitzkrieg", Description = "Win a round against five enemies in less than thirty seconds.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Mercy Rule", Description = "Kill the entire opposing team without any members of your team dying.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Clean Sweep", Description = "Kill the entire opposing team without any members of your team taking any damage.", MaxProgress = 1, Category = Category.TeamTactics },
@@ -238,21 +239,21 @@ public static class Achievements
 		new () { Name = "Knife Expert", Description = "Kill 100 enemies with the Knife.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_knife")] },
 		new () { Name = "HE Grenade Expert", Description = "Kill 100 enemies with the HE grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade")] },
 		new () { Name = "Flame Expert", Description = "Kill 100 enemies with the Molotov or Incendiary grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_molotov", "weapon_incgrenade")] },
-		// new () { Name = "Premature Burial", Description = "Kill an enemy with a grenade after dying.", MaxProgress = 1, Category = Category.WeaponSpecialist },
+		// new () { Name = "Premature Burial", Description = "Kill an enemy with a grenade after dying.", MaxProgress = 1, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithPlayerHealth(0)] },
 		new () { Name = "Pistol Master", Description = "Unlock all pistol kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Desert Eagle Expert", "P2000/USP Tactical Expert", "Glock-18 Expert", "P250 Expert", "Dual Berettas Expert", "Five-SeveN Expert", "Tec-9 Expert"] },
 		new () { Name = "Rifle Master", Description = "Unlock all rifle kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["AK-47 Expert", "M4 AR Expert", "AUG Expert", "SG553 Expert", "SCAR-20 Expert", "Galil AR Expert", "FAMAS Expert", "SSG 08 Expert", "G3SG1 Expert", "AWP Expert"] },
 		new () { Name = "Sub-Machine Gun Master", Description = "Unlock all sub-machine gun kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["P90 Expert", "MP7 Expert", "MP9 Expert", "MAC-10 Expert", "UMP-45 Expert", "PP-Bizon Expert"] },
 		new () { Name = "Shotgun Master", Description = "Unlock all shotgun kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Nova Expert", "XM1014 Expert", "MAG-7 Expert", "Sawed-Off Expert"] },
 		new () { Name = "Master At Arms", Description = "Unlock every weapon kill achievement.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Pistol Master", "Rifle Master", "Sub-Machine Gun Master", "Shotgun Master", "Knife Expert", "HE Grenade Expert", "Flame Expert", "M249 Expert", "Negev Expert", "Zeus x27 Expert"] },
 		new () { Name = "Zeus x27 Expert", Description = "Kill 10 enemies with the Zeus x27.", MaxProgress = 10, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_taser")] },
-		// new () { Name = "Italy Map Veteran", Description = "Win 100 rounds on Italy.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Office Map Veteran", Description = "Win 100 rounds on Office.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Aztec Map Veteran", Description = "Win 100 rounds on Aztec.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Dust Map Veteran", Description = "Win 100 rounds on Dust.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Dust2 Map Veteran", Description = "Win 100 rounds on Dust2.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Inferno Map Veteran", Description = "Win 100 rounds on Inferno.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Nuke Map Veteran", Description = "Win 100 rounds on Nuke.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Train Map Veteran", Description = "Win 100 rounds on Train.", MaxProgress = 1, Category = Category.GlobalExpertise },
+		new () { Name = "Italy Map Veteran", Description = "Win 100 rounds on Italy.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("cs_italy"), WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Office Map Veteran", Description = "Win 100 rounds on Office.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("cs_office"), WithGameMode(GameMode.Competitive)] },
+		// new () { Name = "Aztec Map Veteran", Description = "Win 100 rounds on Aztec.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_aztec"), WithGameMode(GameMode.Competitive)] },
+		// new () { Name = "Dust Map Veteran", Description = "Win 100 rounds on Dust.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_dust"), WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Dust2 Map Veteran", Description = "Win 100 rounds on Dust2.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_dust2"), WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Inferno Map Veteran", Description = "Win 100 rounds on Inferno.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_inferno"), WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Nuke Map Veteran", Description = "Win 100 rounds on Nuke.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_nuke"), WithGameMode(GameMode.Competitive)] },
+		new () { Name = "Train Map Veteran", Description = "Win 100 rounds on Train.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_train"), WithGameMode(GameMode.Competitive)] },
 		// new () { Name = "Shoots Vet", Description = "Win five matches in Arms Race mode on Shoots.", MaxProgress = 1, Category = Category.GlobalExpertise },
 		// new () { Name = "Baggage Claimer", Description = "Win five matches in Arms Race mode on Baggage.", MaxProgress = 1, Category = Category.GlobalExpertise },
 		// new () { Name = "Vacation", Description = "Win five matches on Lake.", MaxProgress = 1, Category = Category.GlobalExpertise },
@@ -295,38 +296,7 @@ public static class Achievements
 		// new () { Name = "Ten Angry Men", Description = "Kill 10 enemies you are already dominating during a single match.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Excessive Brutality", Description = "Kill an enemy whom you are dominating four additional times.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Hat Trick", Description = "Dominate three enemies simultaneously.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Avenging Angel", Description = "Kill an enemy who has killed a player on your friends list in the same round.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Record Breaker", Description = "Beat the active training course record in the Weapons CourseNever implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Combat Ready", Description = "Defuse a bomb with a kit when it would have failed without one.Unreleased", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Mad Props", Description = "Break 15 props in a single roundAfter the beta, Dynamic props replaced with static props", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Seppuku", Description = "Kill yourself while on gold knife level in Arms Race ModeOriginally available in the Beta, but was later removed", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Safety First", Description = "Survive a shot to the head because you had the good sense to wear a helmet (Competitive Mode only)Originally available in the Beta, but was removed", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "The Art of War", Description = "Apply graffiti 100 timesNot Implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Compound Map Veteran", Description = "Win 100 rounds on CompoundLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Havana Map Veteran", Description = "Win 100 rounds on HavanaLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Chateau Map Veteran", Description = "Win 100 rounds on ChateauLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Piranesi Map Veteran", Description = "Win 100 rounds on PiranesiLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Prodigy Map Veteran", Description = "Win 100 rounds on ProdigyLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Tides Map Veteran", Description = "Win 100 rounds on TidesLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Friendly Attire", Description = "Start a round on the same team as 4 of your friends, with all of you wearing the same outfitLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "USP Expert", Description = "Kill 200 enemies with the USP", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "P228 Expert", Description = "Kill 200 enemies with the P228", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "MP5 Expert", Description = "Kill 1,000 enemies with the MP5", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "TMP Expert", Description = "Kill 500 enemies with the TMP", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Dead of Night", Description = "Do 5,000 damage with nightvision activeLeft over achievement from Counter-Strike: Source", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Smorgasbord", Description = "Use every available weapon type in a single round in Scavenger ModeNever implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "I'm Still Standing", Description = "Win the round as the last man standing in Scavenger ModeNever implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Living on the Edge", Description = "Get a knife kill in Scavenger ModeNever implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Urban Warfare", Description = "Win five matches on Embassy Never implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Depot Despot", Description = "Win five matches on Depot Never implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Assault Map Veteran", Description = "Win 100 rounds on the Assault mapNever implemented", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "M4A1 Expert", Description = "Kill 1000 enemies with the M4A1", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Scout Expert", Description = "Kill 1,000 enemies with the Scout", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Galil Expert", Description = "Kill 500 enemies with the Galil", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "SG 550 Expert", Description = "Kill 500 enemies with the SG 550", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "SG 552 Expert", Description = "Kill 500 enemies with the SG 552", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "M3 Shotgun Expert", Description = "Kill 200 enemies with the M3 Shotgun", MaxProgress = 1, Category = Category.CutContent },
-		// new () { Name = "Unknown achievement name", Description = "Kill an enemy with an un-zoomed sniper rifle in Arms Race or Demolition.Unreleased", MaxProgress = 1, Category = Category.CutContent }
+		// new () { Name = "Avenging Angel", Description = "Kill an enemy who has killed a player on your friends list in the same round.", MaxProgress = 1, Category = Category.ArmsRaceDemolition }
 	];
 
 	static readonly string SaveFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CS2Achievements", "achievements.json");
@@ -503,6 +473,21 @@ public static class Achievements
 			int idx = AchievementList.FindIndex(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
 			var achievement = AchievementList[idx];
 			if (achievement.Complete) continue;
+
+			if (achievement.Name == "Awardist") {
+				achievement.MaxProgress = AchievementList.Count(a => a.MaxProgress > 0);
+				achievement.Progress = AchievementList.Count(a => a.Complete && a.MaxProgress > 0);
+				if (achievement.Progress >= achievement.MaxProgress && achievement.MaxProgress > 0) {
+					achievement.Complete = true;
+					if (!silent) {
+						Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+						PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
+						SaveAchievements();
+					}
+					AchievementList[idx] = achievement;
+					continue;
+				}
+			}
 
 			achievement.MaxProgress = achievement.RequiredAchievements!.Count;
 			achievement.Progress = achievement.RequiredAchievements.Count(req =>
