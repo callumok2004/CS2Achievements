@@ -535,7 +535,7 @@ public static class Achievements
 	}
 
 	static void CheckMetaAchievements(bool silent = false) {
-		foreach (var name in AchievementList.Where(a => a.RequiredAchievements != null).Select(a => a.Name).ToList()) {
+		foreach (var name in AchievementList.Where(a => a.RequiredAchievements != null || a.Name == "Awardist").Select(a => a.Name).ToList()) {
 			int idx = AchievementList.FindIndex(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
 			var achievement = AchievementList[idx];
 			if (achievement.Complete) continue;
@@ -550,9 +550,9 @@ public static class Achievements
 						PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
 						SaveAchievements();
 					}
-					AchievementList[idx] = achievement;
-					continue;
 				}
+				AchievementList[idx] = achievement;
+				continue;
 			}
 
 			achievement.MaxProgress = achievement.RequiredAchievements!.Count;
