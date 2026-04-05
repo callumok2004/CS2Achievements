@@ -223,7 +223,7 @@ public static class Achievements
 		new () { Name = "AUG Expert", Description = "Kill 250 enemies with the AUG.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_aug")] },
 		new () { Name = "SG553 Expert", Description = "Kill 100 enemies with the SG553.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_sg556")] },
 		new () { Name = "SCAR-20 Expert", Description = "Kill 100 enemies with the SCAR-20.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_scar20")] },
-		new () { Name = "Galil AR Expert", Description = "Kill 250 enemies with the Galil AR.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_galil")] },
+		new () { Name = "Galil AR Expert", Description = "Kill 250 enemies with the Galil AR.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_galilar")] },
 		new () { Name = "FAMAS Expert", Description = "Kill 100 enemies with the FAMAS.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_famas")] },
 		new () { Name = "SSG 08 Expert", Description = "Kill 100 enemies with the SSG 08.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_ssg08")] },
 		new () { Name = "G3SG1 Expert", Description = "Kill 100 enemies with the G3SG1.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_g3sg1")] },
