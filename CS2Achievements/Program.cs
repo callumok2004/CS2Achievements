@@ -4,11 +4,10 @@ using CounterStrike2GSI;
 using CounterStrike2GSI.EventMessages;
 using CounterStrike2GSI.Nodes;
 
-using Serilog;
-
 namespace CS2Achievements;
 
-public static class Global {
+public static class Global
+{
 	public static CounterStrike2GSI.GameState? CurrentGameState;
 	public static GameMode CurrentGameMode = GameMode.Undefined;
 	public static string CurrentMap = string.Empty;
@@ -20,39 +19,33 @@ public static class Global {
 	public static bool IsPistolRound;
 	public static List<RecentKill> RecentKills = [];
 
-	public static ILogger Logger { get; } = new LoggerConfiguration()
-		.MinimumLevel.Verbose()
-		.Enrich.FromLogContext()
-		.WriteTo.Console()
-		.CreateLogger();
-
+	public static ILogger Logger { get; } = AppLogger.Instance;
 }
 
-public struct RecentKill {
+public struct RecentKill
+{
 	public PlayerGotKill Event;
 	public DateTime Timestamp;
 }
 
-public class Program
+public static class GameService
 {
 	static GameStateListener? _gsl;
+	static volatile bool _running;
+	public static bool IsRunning => _running;
 
-	static void Main(string[] args) {
+	public static void Start() {
+		AppConfig.Load();
+
 		_gsl = new GameStateListener(4000);
 
 		if (!_gsl.GenerateGSIConfigFile("Achievements"))
 			Logger.Error("Could not generate GSI configuration file.");
 
-		Logger.Debug("Loading achievements...");
-
-		Achievements.LoadAchievements();
-		Achievements.SaveAchievements();
-
-		Logger.Information("Loaded {Count} achievements.", Achievements.AchievementList.Count.ToString());
-
 		try {
 			SteamID = SteamIDReader.GetCurrentSteamID64String();
 			Logger.Information("Current SteamID64: {SteamID}", SteamID);
+			Achievements.LoadForSteamId(SteamID);
 		}
 		catch (Exception ex) {
 			Logger.Error("Failed to get SteamID: {Message}", ex.Message);
@@ -61,7 +54,6 @@ public class Program
 		_gsl.NewGameState += OnNewGameState;
 		_gsl.BombStateUpdated += OnBombStateUpdated;
 		_gsl.PlayerGotKill += OnPlayerGotKill;
-		// _gsl.KillFeed += OnKillFeed;
 		_gsl.PlayerWeaponsPickedUp += OnPlayerWeaponsPickedUp;
 		_gsl.PlayerWeaponsDropped += OnPlayerWeaponsDropped;
 		_gsl.RoundStarted += OnRoundStarted;
@@ -70,19 +62,22 @@ public class Program
 		_gsl.MapUpdated += OnMapUpdated;
 
 		if (!_gsl.Start()) {
-			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator. Exiting.");
-			Console.ReadLine();
-			Environment.Exit(0);
+			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator.");
+			return;
 		}
+
+		_running = true;
 		Logger.Information("Listening for game integration calls...");
 
 		new Thread(() => {
-			while (true) {
+			while (_running) {
 				try {
 					string currentSteamID = SteamIDReader.GetCurrentSteamID64String();
 					if (currentSteamID != SteamID) {
+						string oldId = SteamID ?? "none";
 						SteamID = currentSteamID;
-						Logger.Information("SteamID changed: {SteamID}", SteamID);
+						Logger.Information("SteamID changed from {Old} to {New}.", oldId, SteamID);
+						Achievements.LoadForSteamId(SteamID);
 					}
 				}
 				catch (Exception ex) {
@@ -94,18 +89,16 @@ public class Program
 		}) {
 			IsBackground = true
 		}.Start();
+	}
 
-		Logger.Information("Press ESC to quit.");
-		do {
-			while (!Console.KeyAvailable)
-				Thread.Sleep(1000);
-		} while (Console.ReadKey(true).Key != ConsoleKey.Escape);
+	public static void Stop() {
+		_running = false;
+		_gsl?.Stop();
 	}
 
 	private static void OnNewGameState(CounterStrike2GSI.GameState gamestate) {
 		if (SteamID == null) return;
 		CurrentGameState = gamestate;
-		// Logger.Debug(gamestate.ToString());
 
 		if (gamestate.Player == null || gamestate.Player.SteamID != SteamID) return;
 		Self = gamestate.Player;
@@ -113,7 +106,7 @@ public class Program
 	}
 
 	private static void OnBombStateUpdated(BombStateUpdated game_event) {
-		Console.WriteLine($"The bomb is now {game_event.New}.");
+		Logger.Debug($"The bomb is now {game_event.New}.");
 	}
 
 	private static void OnGamemodeChanged(GamemodeChanged game_event) {
@@ -133,50 +126,29 @@ public class Program
 	private static void OnPlayerGotKill(PlayerGotKill game_event) {
 		Logger.Debug($"PlayerGotKill event: Player={game_event.Player.Name}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}, IsAce={game_event.IsAce}");
 		if (game_event.Player.SteamID == SteamID) {
-			RecentKills.Add(new () { Event = game_event, Timestamp = DateTime.Now });
+			RecentKills.Add(new() { Event = game_event, Timestamp = DateTime.Now });
 			if (RecentKills.Count > 10) RecentKills.RemoveAt(0);
 			Achievements.OnEvent(Event.KilledPlayer, game_event);
 			Achievements.AddUniqueItem("Expert Marksman", game_event.Weapon.Name);
 		}
 	}
 
-	private static void OnKillFeed(KillFeed game_event) {
-		// Logger.Debug($"KillFeed event: Killer={game_event.Killer?.Weapons}, Victim={game_event.Victim?.Weapons}, Weapon={game_event.Weapon.Name}, IsHeadshot={game_event.IsHeadshot}");
-	}
-
-	private static void OnPlayerWeaponsPickedUp(PlayerWeaponsPickedUp game_event) {
-		// Console.WriteLine($"The player {game_event.Player.Name} picked up the following weapons:");
-		// foreach (var weapon in game_event.Weapons)
-		// 	Console.WriteLine($"\t{weapon.Name}");
-	}
-
-	private static void OnPlayerWeaponsDropped(PlayerWeaponsDropped game_event) {
-		// Console.WriteLine($"The player {game_event.Player.Name} dropped the following weapons:");
-		// foreach (var weapon in game_event.Weapons)
-		// 	Console.WriteLine($"\t{weapon.Name}");
-	}
+	private static void OnPlayerWeaponsPickedUp(PlayerWeaponsPickedUp game_event) { }
+	private static void OnPlayerWeaponsDropped(PlayerWeaponsDropped game_event) { }
 
 	private static void OnRoundStarted(RoundStarted game_event) {
-		// if (game_event.IsFirstRound)
-		// 	Console.WriteLine($"First round {game_event.Round} started.");
-		// else if (game_event.IsLastRound)
-		// 	Console.WriteLine($"Last round {game_event.Round} started.");
-		// else
-		// 	Console.WriteLine($"A new round {game_event.Round} started.");
-
 		IsFirstRound = game_event.IsFirstRound;
 		IsLastRound = game_event.IsLastRound;
 		IsPistolRound = game_event.IsFirstRound || game_event.Round == 13;
 	}
 
 	private static void OnRoundConcluded(RoundConcluded game_event) {
-		// Console.WriteLine($"Round {game_event.Round} concluded by {game_event.WinningTeam} for reason: {game_event.RoundConclusionReason}");
-
 		if (game_event.WinningTeam == CurrentTeam) {
 			Achievements.OnEvent(Event.RoundWon, game_event);
 			if (game_event.IsLastRound)
 				Achievements.OnEvent(Event.MatchWon, game_event);
 		}
+		Achievements.FlushRoundEndPopups();
 	}
 }
 

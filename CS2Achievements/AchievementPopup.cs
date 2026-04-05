@@ -36,13 +36,13 @@ namespace CS2Achievements
 		private int _progress;
 		private int _maxProgress;
 
-		private static readonly Color BgColor       = Color.FromArgb(22, 25, 31);
-		private static readonly Color IconBgColor   = Color.FromArgb(13, 15, 19);
-		private static readonly Color TitleColor    = Color.FromArgb(220, 220, 215);
-		private static readonly Color DescColor     = Color.FromArgb(160, 150, 120);
-		private static readonly Color BarBgColor    = Color.FromArgb(42, 46, 54);
-		private static readonly Color BarFillColor  = Color.FromArgb(195, 158, 35);
-		private static readonly Color BorderColor   = Color.FromArgb(52, 56, 65);
+		private static readonly Color BgColor = Color.FromArgb(22, 25, 31);
+		private static readonly Color IconBgColor = Color.FromArgb(13, 15, 19);
+		private static readonly Color TitleColor = Color.FromArgb(220, 220, 215);
+		private static readonly Color DescColor = Color.FromArgb(160, 150, 120);
+		private static readonly Color BarBgColor = Color.FromArgb(42, 46, 54);
+		private static readonly Color BarFillColor = Color.FromArgb(195, 158, 35);
+		private static readonly Color BorderColor = Color.FromArgb(52, 56, 65);
 
 		public AchievementPopup(string achievementName, string title, string description, Image? icon = null, int progress = 0, int maxProgress = 0) {
 			AchievementName = achievementName;
@@ -199,10 +199,10 @@ namespace CS2Achievements
 					: target;
 				popup.Top = next;
 
-				int clipTop    = Math.Max(0, bounds.Top - next);
+				int clipTop = Math.Max(0, bounds.Top - next);
 				int clipBottom = Math.Max(0, Math.Min(popup.Height, bounds.Bottom - next));
-				int clipLeft   = Math.Max(0, bounds.Left - popup.Left);
-				int clipRight  = Math.Max(0, Math.Min(popup.Width, bounds.Right - popup.Left));
+				int clipLeft = Math.Max(0, bounds.Left - popup.Left);
+				int clipRight = Math.Max(0, Math.Min(popup.Width, bounds.Right - popup.Left));
 				if (clipBottom > clipTop && clipRight > clipLeft)
 					popup.Region = new Region(new Rectangle(clipLeft, clipTop, clipRight - clipLeft, clipBottom - clipTop));
 				else

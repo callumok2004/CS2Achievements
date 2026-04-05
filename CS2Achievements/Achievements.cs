@@ -1,3 +1,5 @@
+using System.Drawing;
+
 using CounterStrike2GSI.EventMessages;
 using CounterStrike2GSI.Nodes;
 
@@ -191,7 +193,7 @@ public static class Achievements
 		// new () { Name = "Dead Man Stalking", Description = "Kill an enemy while at one health", MaxProgress = 1, Category = Category.CombatSkills },
 		new () { Name = "Street Fighter", Description = "Kill an enemy with a knife during the Pistol Round in Competitive mode.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_knife", "weapon_knife_t"), WithGameMode(GameMode.Competitive), OnPistolRound()] },
 		// new () { Name = "Akimbo King", Description = "Use Dual Berettas to kill an enemy player that is also wielding Dual Berettas .", MaxProgress = 1, Category = Category.CombatSkills },
-		new () { Name = "Three the Hard Way", Description = "Kill three enemies with a single HE grenade .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithNumKillsInSeconds(3, 0)] },
+		// new () { Name = "Three the Hard Way", Description = "Kill three enemies with a single HE grenade .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithNumKillsInSeconds(3, 0)] },
 		// new () { Name = "Death From Above", Description = "Kill an enemy while you are airborne.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Bunny Hunt", Description = "Kill an airborne enemy.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Aerial Necrobatics", Description = "Kill an airborne enemy while you are also airborne.", MaxProgress = 1, Category = Category.CombatSkills },
@@ -301,96 +303,158 @@ public static class Achievements
 		// new () { Name = "Avenging Angel", Description = "Kill an enemy who has killed a player on your friends list in the same round.", MaxProgress = 1, Category = Category.ArmsRaceDemolition }
 	];
 
-	static readonly string SaveFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CS2Achievements", "achievements.json");
+	static readonly string SaveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CS2Achievements");
+
+	static string? _loadedSteamId;
+	static readonly object _lock = new();
+
+	static string GetSaveFilePath(string steamId) => Path.Combine(SaveDir, $"achievements_{steamId}.json");
+
+	public static string? LoadedSteamId => _loadedSteamId;
 
 	public static void SaveAchievements() {
-		Directory.CreateDirectory(Path.GetDirectoryName(SaveFilePath)!);
-
-		string json = System.Text.Json.JsonSerializer.Serialize(AchievementList);
-		File.WriteAllText(SaveFilePath, json);
+		lock (_lock) {
+			if (_loadedSteamId == null) return;
+			Directory.CreateDirectory(SaveDir);
+			string json = System.Text.Json.JsonSerializer.Serialize(AchievementList);
+			File.WriteAllText(GetSaveFilePath(_loadedSteamId), json);
+		}
 	}
 
-	public static void LoadAchievements() {
-		if (!File.Exists(SaveFilePath))
-			return;
+	public static void LoadForSteamId(string steamId) {
+		lock (_lock) {
+			if (_loadedSteamId == steamId) return;
 
-		string json = File.ReadAllText(SaveFilePath);
-		List<Achievement>? loadedAchievements = System.Text.Json.JsonSerializer.Deserialize<List<Achievement>>(json);
+			if (_loadedSteamId != null)
+				SaveAchievements();
 
-		if (loadedAchievements != null) {
-			foreach (var loaded in loadedAchievements) {
-				int idx = AchievementList.FindIndex(a => string.Equals(a.Name, loaded.Name, StringComparison.OrdinalIgnoreCase));
-				if (idx >= 0) {
-					var a = AchievementList[idx];
-					a.CollectedItems = loaded.CollectedItems;
-					if (a.Items != null) {
-						a.MaxProgress = a.Items.Count;
-						a.Progress = a.CollectedItems?.Count ?? 0;
-					} else {
-						a.Progress = loaded.Progress;
+			ResetInMemory();
+
+			_loadedSteamId = steamId;
+			string path = GetSaveFilePath(steamId);
+			if (!File.Exists(path)) {
+				Logger.Information("No save data found for SteamID {SteamID}, starting fresh.", steamId);
+				CheckMetaAchievements(silent: true);
+				return;
+			}
+
+			string json = File.ReadAllText(path);
+			List<Achievement>? loadedAchievements = System.Text.Json.JsonSerializer.Deserialize<List<Achievement>>(json);
+
+			if (loadedAchievements != null) {
+				foreach (var loaded in loadedAchievements) {
+					int idx = AchievementList.FindIndex(a => string.Equals(a.Name, loaded.Name, StringComparison.OrdinalIgnoreCase));
+					if (idx >= 0) {
+						var a = AchievementList[idx];
+						a.CollectedItems = loaded.CollectedItems;
+						if (a.Items != null) {
+							a.MaxProgress = a.Items.Count;
+							a.Progress = a.CollectedItems?.Count ?? 0;
+						}
+						else {
+							a.Progress = loaded.Progress;
+						}
+						a.Complete = a.MaxProgress > 0 && a.Progress >= a.MaxProgress;
+						AchievementList[idx] = a;
 					}
-					a.Complete = a.MaxProgress > 0 && a.Progress >= a.MaxProgress;
-					AchievementList[idx] = a;
 				}
 			}
+			else
+				Logger.Warning("Failed to deserialize achievements for SteamID {SteamID}.", steamId);
+
+			CheckMetaAchievements(silent: true);
+			Logger.Information("Loaded achievements for SteamID {SteamID}.", steamId);
 		}
-		else
-			Logger.Warning("Failed to load achievements from file.");
+	}
 
-		CheckMetaAchievements(silent: true);
+	static void ResetInMemory() {
+		for (int i = 0; i < AchievementList.Count; i++) {
+			var a = AchievementList[i];
+			a.Progress = 0;
+			a.Complete = false;
+			a.CollectedItems = null;
+			if (a.Items != null)
+				a.MaxProgress = a.Items.Count;
+			AchievementList[i] = a;
+		}
+	}
 
-		// testing
-		// if (AchievementList.Count > 0) {
-		// 	var achievement = AchievementList[0];
-		// 	PopupStack.Show($"{achievement.Name}", $"Progress: {achievement.Progress}/{achievement.MaxProgress}", GetAchievementIcon(achievement.Name));
-		// }
-
-		// new Thread(() => {
-		// 	while (true) {
-		// 		Thread.Sleep(new Random().Next(500, 3000));
-		// 		if (AchievementList.Count > 0) {
-		// 			var achievement = AchievementList[RandomNumberGenerator.GetInt32(AchievementList.Count)];
-		// 			PopupStack.Show(achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
-		// 		}
-		// 	}
-		// }).Start();
+	public static void ResetAllProgress() {
+		lock (_lock) {
+			ResetInMemory();
+			SaveAchievements();
+			Logger.Information("All achievement progress has been reset for SteamID {SteamID}.", _loadedSteamId ?? "unknown");
+		}
 	}
 
 	public static void IncrementAchievementProgress(string achievementName, int amount = 1) {
-		int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
+		lock (_lock) {
+			if (_loadedSteamId == null) return;
 
-		if (idx == -1) {
-			Logger.Warning($"Achievement '{achievementName}' not found.");
-			return;
+			int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
+
+			if (idx == -1) {
+				Logger.Warning($"Achievement '{achievementName}' not found.");
+				return;
+			}
+
+			var achievement = AchievementList[idx];
+			if (achievement.Complete) return;
+			if (achievement.Items != null) return;
+
+			int oldProgress = achievement.Progress;
+			achievement.Progress += amount;
+			Logger.Debug($"Progress for achievement '{achievement.Name}' increased by {amount}. Current progress: {achievement.Progress}/{achievement.MaxProgress}");
+
+			bool prerequisiteMet = achievement.Prerequisite == null ||
+				AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
+
+			if (achievement.Progress >= achievement.MaxProgress) {
+				achievement.Progress = achievement.MaxProgress;
+				achievement.Complete = true;
+				Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+				if (AppConfig.Instance.ShowUnlockPopups)
+					PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
+			}
+			else if (prerequisiteMet && ShouldShowProgressPopup(oldProgress, achievement.Progress, achievement.MaxProgress))
+				PopupStack.Show(achievement.Name, achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
+
+			AchievementList[idx] = achievement;
+			SaveAchievements();
+			CheckMetaAchievements();
 		}
+	}
 
-		var achievement = AchievementList[idx];
-		if (achievement.Complete) {
-			// Logger.Information($"Achievement '{achievement.Name}' is already complete.");
-			return;
+	static bool ShouldShowProgressPopup(int oldProgress, int newProgress, int maxProgress) {
+		if (maxProgress <= 0) return false;
+		return AppConfig.Instance.ProgressPopups switch {
+			PopupMode.Always => true,
+			PopupMode.OnRoundEnd => false, // handled externally at round end
+			PopupMode.AtMilestones => HitMilestone(oldProgress, newProgress, maxProgress),
+			_ => true
+		};
+	}
+
+	static bool HitMilestone(int oldProgress, int newProgress, int maxProgress) {
+		if (maxProgress <= 0) return false;
+		int step = Math.Max(1, maxProgress / 10);
+		return oldProgress / step != newProgress / step;
+	}
+
+	/// <summary>
+	/// Called at round end to flush any pending progress popups in OnRoundEnd mode.
+	/// </summary>
+	public static void FlushRoundEndPopups() {
+		if (AppConfig.Instance.ProgressPopups != PopupMode.OnRoundEnd) return;
+		lock (_lock) {
+			foreach (var a in AchievementList) {
+				if (a.Complete || a.Progress <= 0 || a.MaxProgress <= 0) continue;
+				bool prerequisiteMet = a.Prerequisite == null ||
+					AchievementList.Find(x => string.Equals(x.Name, a.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
+				if (prerequisiteMet)
+					PopupStack.Show(a.Name, a.Name, a.Description, GetAchievementIcon(a.Name), a.Progress, a.MaxProgress);
+			}
 		}
-
-		if (achievement.Items != null)
-			return;
-
-		achievement.Progress += amount;
-		Logger.Debug($"Progress for achievement '{achievement.Name}' increased by {amount}. Current progress: {achievement.Progress}/{achievement.MaxProgress}");
-
-		bool prerequisiteMet = achievement.Prerequisite == null ||
-			AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
-
-		if (achievement.Progress >= achievement.MaxProgress) {
-			achievement.Progress = achievement.MaxProgress;
-			achievement.Complete = true;
-			Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
-			PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
-		}
-		else if (prerequisiteMet)
-			PopupStack.Show(achievement.Name, achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
-
-		AchievementList[idx] = achievement;
-		SaveAchievements();
-		CheckMetaAchievements();
 	}
 
 	static Dictionary<string, Image> CachedIcons = [];
@@ -422,52 +486,52 @@ public static class Achievements
 		return SystemIcons.Question.ToBitmap();
 	}
 
-	private static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
+	internal static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
 	public static void AddUniqueItem(string achievementName, string item) {
-		int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
-		if (idx == -1) {
-			Logger.Warning($"Achievement '{achievementName}' not found.");
-			return;
+		lock (_lock) {
+			if (_loadedSteamId == null) return;
+
+			int idx = AchievementList.FindIndex(a => string.Equals(a.Name, achievementName, StringComparison.OrdinalIgnoreCase));
+			if (idx == -1) {
+				Logger.Warning($"Achievement '{achievementName}' not found.");
+				return;
+			}
+
+			var achievement = AchievementList[idx];
+			if (achievement.Complete) return;
+
+			if (achievement.Items != null && !achievement.Items.Contains(item)) {
+				Logger.Warning($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
+				return;
+			}
+
+			achievement.CollectedItems ??= [];
+			if (!achievement.CollectedItems.Add(item)) return;
+
+			if (achievement.Items != null)
+				achievement.MaxProgress = achievement.Items.Count;
+			int oldProgress = achievement.Progress;
+			achievement.Progress = achievement.CollectedItems.Count;
+			Logger.Debug($"Item '{item}' added to '{achievement.Name}'. Progress: {achievement.Progress}/{achievement.MaxProgress}");
+
+			bool prerequisiteMet = achievement.Prerequisite == null ||
+				AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
+
+			if (achievement.Progress >= achievement.MaxProgress) {
+				achievement.Progress = achievement.MaxProgress;
+				achievement.Complete = true;
+				Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
+				if (AppConfig.Instance.ShowUnlockPopups)
+					PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
+			}
+			else if (prerequisiteMet && ShouldShowProgressPopup(oldProgress, achievement.Progress, achievement.MaxProgress))
+				PopupStack.Show(achievement.Name, achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
+
+			AchievementList[idx] = achievement;
+			SaveAchievements();
+			CheckMetaAchievements();
 		}
-
-		var achievement = AchievementList[idx];
-		if (achievement.Complete) {
-			// Logger.Information($"Achievement '{achievement.Name}' is already complete.");
-			return;
-		}
-
-		if (achievement.Items != null && !achievement.Items.Contains(item)) {
-			Logger.Warning($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
-			return;
-		}
-
-		achievement.CollectedItems ??= [];
-		if (!achievement.CollectedItems.Add(item)) {
-			// Logger.Debug($"Item '{item}' already collected for achievement '{achievement.Name}'.");
-			return;
-		}
-
-		if (achievement.Items != null)
-			achievement.MaxProgress = achievement.Items.Count;
-		achievement.Progress = achievement.CollectedItems.Count;
-		Logger.Debug($"Item '{item}' added to '{achievement.Name}'. Progress: {achievement.Progress}/{achievement.MaxProgress}");
-
-		bool prerequisiteMet = achievement.Prerequisite == null ||
-			AchievementList.Find(a => string.Equals(a.Name, achievement.Prerequisite, StringComparison.OrdinalIgnoreCase)) is { Complete: true };
-
-		if (achievement.Progress >= achievement.MaxProgress) {
-			achievement.Progress = achievement.MaxProgress;
-			achievement.Complete = true;
-			Logger.Information($"Achievement Unlocked: {achievement.Name} - {achievement.Description}");
-			PopupStack.Show(achievement.Name, "Achievement Unlocked!", achievement.Description, GetAchievementIcon(achievement.Name), achievement.MaxProgress, achievement.MaxProgress);
-		}
-		else if (prerequisiteMet)
-			PopupStack.Show(achievement.Name, achievement.Name, achievement.Description, GetAchievementIcon(achievement.Name), achievement.Progress, achievement.MaxProgress);
-
-		AchievementList[idx] = achievement;
-		SaveAchievements();
-		CheckMetaAchievements();
 	}
 
 	static void CheckMetaAchievements(bool silent = false) {
@@ -509,6 +573,7 @@ public static class Achievements
 	}
 
 	public static void OnEvent(Event eventName, object? data = null) {
+		if (_loadedSteamId == null) return;
 		foreach (Achievement achievement in AchievementList.ToList()) {
 			if (achievement.OnEvent == eventName && (achievement.Filters == null || achievement.Filters.All(f => f(data))))
 				IncrementAchievementProgress(achievement.Name);
