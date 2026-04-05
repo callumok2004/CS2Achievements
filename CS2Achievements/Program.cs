@@ -17,6 +17,7 @@ public static class Global {
 	public static Player? Self = null;
 	public static bool IsFirstRound;
 	public static bool IsLastRound;
+	public static bool IsPistolRound;
 	public static List<RecentKill> RecentKills = [];
 
 	public static ILogger Logger { get; } = new LoggerConfiguration()
@@ -104,6 +105,7 @@ public class Program
 	private static void OnNewGameState(CounterStrike2GSI.GameState gamestate) {
 		if (SteamID == null) return;
 		CurrentGameState = gamestate;
+		// Logger.Debug(gamestate.ToString());
 
 		if (gamestate.Player == null || gamestate.Player.SteamID != SteamID) return;
 		Self = gamestate.Player;
@@ -164,6 +166,7 @@ public class Program
 
 		IsFirstRound = game_event.IsFirstRound;
 		IsLastRound = game_event.IsLastRound;
+		IsPistolRound = game_event.IsFirstRound || game_event.Round == 13;
 	}
 
 	private static void OnRoundConcluded(RoundConcluded game_event) {

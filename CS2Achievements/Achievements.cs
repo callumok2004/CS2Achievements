@@ -163,9 +163,9 @@ public static class Achievements
 		// new () { Name = "Blood Money", Description = "Earn $50,000,000 total cash.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "The Cleaner", Description = "In Classic mode, kill five enemies in a single round.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "War of Attrition", Description = "Be the last player alive in a round with five players on your team.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Piece Initiative", Description = "Win 5 Pistol Rounds in Competitive Mode.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Give Piece a Chance", Description = "Win 25 Pistol Rounds in Competitive Mode.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Piece Treaty", Description = "Win 250 Pistol Rounds in Competitive Mode.", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "Piece Initiative", Description = "Win 5 Pistol Rounds in Competitive Mode.", MaxProgress = 5, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive), OnPistolRound()] },
+		new () { Name = "Give Piece a Chance", Description = "Win 25 Pistol Rounds in Competitive Mode.", MaxProgress = 25, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive), OnPistolRound()], Prerequisite = "Piece Initiative" },
+		new () { Name = "Piece Treaty", Description = "Win 250 Pistol Rounds in Competitive Mode.", MaxProgress = 250, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive), OnPistolRound()], Prerequisite = "Give Piece a Chance" },
 		// new () { Name = "Black Bag Operation", Description = "Win a round without making any footstep noise, killing at least one enemy.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "The Frugal Beret", Description = "Win ten rounds without dying or spending any cash in Classic mode.", MaxProgress = 1, Category = Category.TeamTactics },
 		new () { Name = "Body Bagger", Description = "Kill 25 enemies.", MaxProgress = 25, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer },
@@ -189,7 +189,7 @@ public static class Achievements
 		// new () { Name = "Hip Shot", Description = "Kill an enemy with an un-zoomed sniper rifle.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Snipe Hunter", Description = "Kill 100 zoomed-in enemy snipers.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Dead Man Stalking", Description = "Kill an enemy while at one health", MaxProgress = 1, Category = Category.CombatSkills },
-		new () { Name = "Street Fighter", Description = "Kill an enemy with a knife during the Pistol Round in Competitive mode.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_knife", "weapon_knife_t"), WithGameMode(GameMode.Competitive), OnFirstRound()] },
+		new () { Name = "Street Fighter", Description = "Kill an enemy with a knife during the Pistol Round in Competitive mode.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_knife", "weapon_knife_t"), WithGameMode(GameMode.Competitive), OnPistolRound()] },
 		// new () { Name = "Akimbo King", Description = "Use Dual Berettas to kill an enemy player that is also wielding Dual Berettas .", MaxProgress = 1, Category = Category.CombatSkills },
 		new () { Name = "Three the Hard Way", Description = "Kill three enemies with a single HE grenade .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithNumKillsInSeconds(3, 0)] },
 		// new () { Name = "Death From Above", Description = "Kill an enemy while you are airborne.", MaxProgress = 1, Category = Category.CombatSkills },
@@ -525,5 +525,6 @@ public static class Achievements
 	public static Func<object?, bool> WithHeadshot() => data => data is PlayerGotKill evnt && evnt.IsHeadshot;
 	public static Func<object?, bool> WithAce() => data => data is PlayerGotKill evnt && evnt.IsAce;
 	public static Func<object?, bool> OnFirstRound() => data => IsFirstRound;
+	public static Func<object?, bool> OnPistolRound() => data => IsPistolRound;
 	public static Func<object?, bool> WithNumKillsInSeconds(int numKills, int seconds) => data => data is PlayerGotKill evnt && RecentKills.Count(k => (DateTime.Now - k.Timestamp).TotalSeconds <= seconds) >= numKills;
 }
