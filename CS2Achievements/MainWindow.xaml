@@ -583,7 +583,7 @@
 										<RadioButton
 											x:Name="PopupMilestones"
 											Checked="PopupMode_Changed"
-											Content="At Milestones (10%)"
+											Content="At Milestones (Every 10%)"
 											GroupName="PopupMode"
 											Style="{StaticResource SortBtn}" />
 									</StackPanel>
