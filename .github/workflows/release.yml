@@ -1,7 +1,12 @@
 name: Build and Release
 
 on:
-  push:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -29,12 +34,13 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:DebugType=none
+          -p:Version=${{ github.event.inputs.version }}
           -o publish
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: build-${{ github.run_number }}
+          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
           files: publish/CS2Achievements.exe
-          generate_release_notes: false
+          generate_release_notes: true

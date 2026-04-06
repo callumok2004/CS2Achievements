@@ -329,6 +329,13 @@
 						FontWeight="Bold"
 						Foreground="#8F98A0"
 						Text=" ACHIEVEMENTS" />
+					<TextBlock
+						x:Name="TitleVersionText"
+						Margin="8,0,0,0"
+						VerticalAlignment="Center"
+						FontFamily="Segoe UI"
+						FontSize="10"
+						Foreground="#556677" />
 				</StackPanel>
 				<StackPanel
 					HorizontalAlignment="Right"
@@ -691,39 +698,90 @@
 								</Grid>
 							</Border>
 
+							<Border
+								Margin="0,0,0,6"
+								Padding="16,14"
+								Background="#16202D"
+								CornerRadius="3">
+								<Grid>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*" />
+										<ColumnDefinition Width="Auto" />
+									</Grid.ColumnDefinitions>
+									<TextBlock
+										Grid.Column="0"
+										VerticalAlignment="Center"
+										FontFamily="Segoe UI"
+										FontSize="13"
+										Foreground="#C7D5E0"
+										Text="Open data folder" />
+									<Button
+										Grid.Column="1"
+										Margin="12,0,0,0"
+										Padding="12,6"
+										Background="#2A475E"
+										BorderThickness="0"
+										Click="OpenDataFolder_Click"
+										Cursor="Hand"
+										FontFamily="Segoe UI"
+										FontSize="11"
+										Foreground="#C7D5E0">
+										Open Folder
+									</Button>
+								</Grid>
+							</Border>
+
 							<TextBlock
 								Margin="0,24,0,12"
 								FontFamily="Segoe UI"
 								FontSize="12"
 								FontWeight="Bold"
 								Foreground="#66C0F4"
-								Text="ABOUT" />
+								Text="VERSION" />
 
-							<Border
-								Margin="0,0,0,20"
-								Padding="16,14"
-								Background="#16202D"
-								CornerRadius="3">
-								<StackPanel>
-									<TextBlock
-										FontFamily="Segoe UI"
-										FontSize="13"
-										Foreground="#C7D5E0">
-										<Run Text="CS2 Achievements" />
-									</TextBlock>
-									<TextBlock
-										Margin="0,4,0,0"
-										FontFamily="Segoe UI"
-										FontSize="11"
-										Foreground="#556677"
-										Text="Achievement data is stored per-Steam account in %AppData%\CS2Achievements."
-										TextWrapping="Wrap" />
+									<Border
+										Margin="0,0,0,20"
+										Padding="16,14"
+										Background="#16202D"
+										CornerRadius="3">
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="*" />
+												<ColumnDefinition Width="Auto" />
+											</Grid.ColumnDefinitions>
+											<StackPanel Grid.Column="0" VerticalAlignment="Center">
+												<TextBlock
+													x:Name="VersionInfoText"
+													FontFamily="Segoe UI"
+													FontSize="12"
+													Foreground="#C7D5E0" />
+												<TextBlock
+													x:Name="UpdateStatusText"
+													Margin="0,4,0,0"
+													FontFamily="Segoe UI"
+													FontSize="11"
+													Foreground="#556677" />
+											</StackPanel>
+											<Button
+												Grid.Column="1"
+												Margin="12,0,0,0"
+												Padding="12,6"
+												VerticalAlignment="Center"
+												Background="#2A475E"
+												BorderThickness="0"
+												Click="CheckForUpdates_Click"
+												Cursor="Hand"
+												FontFamily="Segoe UI"
+												FontSize="11"
+												Foreground="#C7D5E0">
+												Check for Updates
+											</Button>
+										</Grid>
+									</Border>
+
 								</StackPanel>
-							</Border>
-
-						</StackPanel>
-					</ScrollViewer>
-				</Grid>
+							</ScrollViewer>
+						</Grid>
 
 				<Grid x:Name="AchievementsPanel" Visibility="Collapsed">
 					<Grid.RowDefinitions>

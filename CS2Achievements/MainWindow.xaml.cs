@@ -48,6 +48,9 @@ public partial class MainWindow : Window
 
 		AppLogger.Instance.Entries.CollectionChanged += OnLogEntriesChanged;
 
+		TitleVersionText.Text = $"v{VersionInfo.CurrentVersion}";
+		VersionInfoText.Text = $"Current version: {VersionInfo.CurrentVersion}";
+
 		InitConfigControls();
 
 		RefreshAchievements();
@@ -237,6 +240,42 @@ public partial class MainWindow : Window
 
 		Achievements.ResetAllProgress();
 		RefreshAchievements();
+	}
+
+	private void OpenDataFolder_Click(object sender, RoutedEventArgs e) {
+		string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CS2Achievements");
+		Directory.CreateDirectory(folder);
+		System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(folder) { UseShellExecute = true });
+	}
+
+	private async void CheckForUpdates_Click(object sender, RoutedEventArgs e) {
+		UpdateStatusText.Text = "Checking...";
+		UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#556677"));
+
+		try {
+			var (updateAvailable, latest, url) = await VersionInfo.CheckForUpdateAsync();
+			if (updateAvailable) {
+				UpdateStatusText.Text = $"Update available: {latest}";
+				UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#66C0F4"));
+				if (url != null) {
+					var result = MessageBox.Show(
+						$"A new version is available: {latest}\n\nOpen the release page?",
+						"Update Available",
+						MessageBoxButton.YesNo,
+						MessageBoxImage.Information);
+					if (result == MessageBoxResult.Yes)
+						System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+				}
+			}
+			else {
+				UpdateStatusText.Text = "You're on the latest version.";
+				UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C7E10"));
+			}
+		}
+		catch {
+			UpdateStatusText.Text = "Failed to check for updates.";
+			UpdateStatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C3931F"));
+		}
 	}
 
 	static readonly Dictionary<string, BitmapSource?> _wpfIconCache = [];
