@@ -24,6 +24,9 @@ jobs:
         with:
           dotnet-version: '10.x'
 
+      - name: Set version
+        run: echo "VERSION=$('${{ github.event.inputs.version }}'.TrimStart('v'))" >> $env:GITHUB_ENV
+
       - name: Publish
         run: >
           dotnet publish CS2Achievements/CS2Achievements.csproj
@@ -34,7 +37,7 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:DebugType=none
-          -p:Version=${{ github.event.inputs.version }}
+          -p:Version=${{ env.VERSION }}
           -o publish
 
       - name: Create Release
