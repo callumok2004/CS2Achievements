@@ -73,6 +73,7 @@ public static class GameService
 		_gsl.MatchStarted += OnMatchStarted;
 		_gsl.BombExploded += OnBombExploded;
 		_gsl.PlayerHealthChanged += OnPlayerHealthChanged;
+		_gsl.Gameover += OnGameover;
 
 		if (!_gsl.Start()) {
 			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator.");
@@ -132,8 +133,9 @@ public static class GameService
 	private static void OnMapUpdated(MapUpdated game_event) {
 		if (game_event.New.Name == CurrentMap) return;
 
+
 		CurrentMap = game_event.New.Name;
-		Logger.Debug($"Map updated to {game_event.New.Name}.");
+		Logger.Debug($"Map changed to {game_event.New.Name}.");
 	}
 
 	private static void OnPlayerGotKill(PlayerGotKill game_event) {
@@ -197,5 +199,7 @@ public static class GameService
 	// private static void OnPlayerRoundKillsChanged(PlayerRoundKillsChanged game_event) {
 	// 	Console.WriteLine($"PlayerRoundKillsChanged: {game_event.New}");
 	// }
+
+	private static void OnGameover(Gameover game_event) => Achievements.OnEvent(Event.GameOver, game_event);
 }
 

@@ -25,7 +25,8 @@ public enum Event
 {
 	KilledPlayer,
 	RoundWon,
-	MatchWon
+	MatchWon,
+	GameOver
 }
 
 public struct Achievement
@@ -283,9 +284,9 @@ public static class Achievements
 		// new () { Name = "Knife on Knife", Description = "Kill an enemy who is on gold knife level with your own knife in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Level Playing Field", Description = "Kill an enemy who is on gold knife level with a sub-machine gun in Arms Race Mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Still Alive", Description = "Survive more than 30 seconds with less than ten health in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Practice Practice Practice", Description = "Play 100 matches of Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Gun Collector", Description = "Play 500 matches of Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "King of the Kill", Description = "Play 5,000 matches of Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
+		new () { Name = "Practice Practice Practice", Description = "Play 100 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 100, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()] },
+		new () { Name = "Gun Collector", Description = "Play 500 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 500, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], Prerequisite = "Practice Practice Practice" },
+		new () { Name = "King of the Kill", Description = "Play 5,000 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 5_000, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], Prerequisite = "Gun Collector" },
 		// new () { Name = "Gungamer", Description = "Win one match in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Keep on Gunning", Description = "Win 25 matches in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Kill of the Century", Description = "Win 100 matches in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
@@ -596,4 +597,5 @@ public static class Achievements
 	public static Func<object?, bool> WithRoundKills(int kills) => data => CurrentRoundData.Kills == kills;
 	public static Func<object?, bool> WithRoundHeadshots(int headshots) => data => CurrentRoundData.HeadshotKills == headshots;
 	public static Func<object?, bool> WithUniqueWeaponsUsed(int count) => data => CurrentRoundData.UniqueWeaponsUsed.Count >= count;
+	public static Func<object?, bool> OnArmsRace() => data => CurrentMap.StartsWith("ar_", StringComparison.OrdinalIgnoreCase);
 }
