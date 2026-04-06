@@ -175,7 +175,7 @@ public static class Achievements
 		new () { Name = "God of War", Description = "Kill 10,000 enemies.", MaxProgress = 10_000, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Prerequisite = "Corpseman" },
 		// new () { Name = "Shot With Their Pants Down", Description = "Kill an enemy while they are reloading.", MaxProgress = 1, Category = Category.CombatSkills },
 		new () { Name = "Ballistic", Description = "In Classic Mode, Kill four enemy players whithin fifteen seconds.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithNumKillsInSeconds(4, 15), WithGameMode(GameMode.Competitive)] },
-		// new () { Name = "Variety Hour", Description = "Get kills with five different guns in a single round.", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Variety Hour", Description = "Get kills with five different guns in a single round.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithUniqueWeaponsUsed(5)] },
 		new () { Name = "Battle Sight Zero", Description = "Kill 250 enemies with headshots.", MaxProgress = 250, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithHeadshot()] },
 		// new () { Name = "Shrapnelproof", Description = "Take 80 points of damage from enemy grenades and still survive the round.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Blind Ambition", Description = "Kill 25 enemies blinded by flashbangs.", MaxProgress = 1, Category = Category.CombatSkills },
@@ -190,7 +190,7 @@ public static class Achievements
 		// new () { Name = "Sknifed", Description = "Kill a zoomed-in enemy sniper with a knife .", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Hip Shot", Description = "Kill an enemy with an un-zoomed sniper rifle.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Snipe Hunter", Description = "Kill 100 zoomed-in enemy snipers.", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Dead Man Stalking", Description = "Kill an enemy while at one health", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Dead Man Stalking", Description = "Kill an enemy while at one health", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithPlayerHealth(1)] },
 		new () { Name = "Street Fighter", Description = "Kill an enemy with a knife during the Pistol Round in Competitive mode.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_knife", "weapon_knife_t"), WithGameMode(GameMode.Competitive), OnPistolRound()] },
 		// new () { Name = "Akimbo King", Description = "Use Dual Berettas to kill an enemy player that is also wielding Dual Berettas .", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Three the Hard Way", Description = "Kill three enemies with a single HE grenade .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithNumKillsInSeconds(3, 0)] },
@@ -207,11 +207,11 @@ public static class Achievements
 		// new () { Name = "Primer", Description = "Do at least 95% damage to an enemy who is then killed by another player.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Finishing Schooled", Description = "Kill an enemy who has been reduced to less than 5% health by other players.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Target-Hardened", Description = "Survive damage from five different enemies within a round.", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "The Unstoppable Force", Description = "Kill four enemies within a single round.", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "The Unstoppable Force", Description = "Kill four enemies within a single round.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithRoundKills(4)] },
 		// new () { Name = "The Immovable Object", Description = "Kill an enemy who has killed four of your teammates within the current round.", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Head Shred Redemption", Description = "Kill five enemy players with headshots in a single round.", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Head Shred Redemption", Description = "Kill five enemy players with headshots in a single round.", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithRoundHeadshots(5)] },
 		// new () { Name = "The Road to Hell", Description = "Blind an enemy player who then kills a teammate.", MaxProgress = 1, Category = Category.CombatSkills },
-		new () { Name = "Desert Eagle Expert", Description = "Kill 200 enemies with the Desert Eagle. Killing enemies with the R8 Revolver also count towards this achievement.", MaxProgress = 200, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_deagle", "weapon_revolver")] },
+		new () { Name = "Desert Eagle Expert", Description = "Kill 200 enemies with the Desert Eagle or R8 Revolver.", MaxProgress = 200, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_deagle", "weapon_revolver")] },
 		new () { Name = "P2000/USP Tactical Expert", Description = "Kill 100 enemies with the P2000 or USP.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_hkp2000", "weapon_usp_silencer")] },
 		new () { Name = "Glock-18 Expert", Description = "Kill 100 enemies with the Glock-18.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_glock")] },
 		new () { Name = "P250 Expert", Description = "Kill 25 enemies with the P250.", MaxProgress = 25, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_p250")] },
@@ -592,4 +592,8 @@ public static class Achievements
 	public static Func<object?, bool> OnFirstRound() => data => IsFirstRound;
 	public static Func<object?, bool> OnPistolRound() => data => IsPistolRound;
 	public static Func<object?, bool> WithNumKillsInSeconds(int numKills, int seconds) => data => data is PlayerGotKill evnt && RecentKills.Count(k => (DateTime.Now - k.Timestamp).TotalSeconds <= seconds) >= numKills;
+	public static Func<object?, bool> WithPlayerHealth(int health) => data => CurrentRoundData.Health == health;
+	public static Func<object?, bool> WithRoundKills(int kills) => data => CurrentRoundData.Kills == kills;
+	public static Func<object?, bool> WithRoundHeadshots(int headshots) => data => CurrentRoundData.HeadshotKills == headshots;
+	public static Func<object?, bool> WithUniqueWeaponsUsed(int count) => data => CurrentRoundData.UniqueWeaponsUsed.Count >= count;
 }
