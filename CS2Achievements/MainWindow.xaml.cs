@@ -32,6 +32,7 @@ public partial class MainWindow : Window
 	private readonly List<AchievementDisplayItem> _achievementItems = [];
 	private readonly DispatcherTimer _refreshTimer;
 	private readonly DispatcherTimer _statusTimer;
+	private bool _configReady;
 
 	public MainWindow() {
 		InitializeComponent();
@@ -65,6 +66,16 @@ public partial class MainWindow : Window
 		PopupRoundEnd.IsChecked = AppConfig.Instance.ProgressPopups == PopupMode.OnRoundEnd;
 		PopupMilestones.IsChecked = AppConfig.Instance.ProgressPopups == PopupMode.AtMilestones;
 		ShowUnlockCheck.IsChecked = AppConfig.Instance.ShowUnlockPopups;
+
+		PosBottomRight.IsChecked = AppConfig.Instance.PopupPosition == PopupPosition.BottomRight;
+		PosBottomLeft.IsChecked = AppConfig.Instance.PopupPosition == PopupPosition.BottomLeft;
+		PosTopRight.IsChecked = AppConfig.Instance.PopupPosition == PopupPosition.TopRight;
+		PosTopLeft.IsChecked = AppConfig.Instance.PopupPosition == PopupPosition.TopLeft;
+
+		float scale = Math.Clamp(AppConfig.Instance.PopupScale, 0.5f, 3.0f);
+		PopupScaleSlider.Value = scale;
+		ScaleValueText.Text = scale.ToString("0.0");
+		_configReady = true;
 	}
 
 	private void Tab_Checked(object sender, RoutedEventArgs e) {
@@ -204,6 +215,7 @@ public partial class MainWindow : Window
 	}
 
 	private void PopupMode_Changed(object sender, RoutedEventArgs e) {
+		if (!_configReady) return;
 		if (PopupAlways?.IsChecked == true) AppConfig.Instance.ProgressPopups = PopupMode.Always;
 		else if (PopupRoundEnd?.IsChecked == true) AppConfig.Instance.ProgressPopups = PopupMode.OnRoundEnd;
 		else if (PopupMilestones?.IsChecked == true) AppConfig.Instance.ProgressPopups = PopupMode.AtMilestones;
@@ -211,8 +223,33 @@ public partial class MainWindow : Window
 	}
 
 	private void ShowUnlock_Changed(object sender, RoutedEventArgs e) {
+		if (!_configReady) return;
 		AppConfig.Instance.ShowUnlockPopups = ShowUnlockCheck.IsChecked == true;
 		AppConfig.Save();
+	}
+
+	private void PopupPosition_Changed(object sender, RoutedEventArgs e) {
+		if (!_configReady) return;
+		if (PosBottomRight?.IsChecked == true) AppConfig.Instance.PopupPosition = PopupPosition.BottomRight;
+		else if (PosBottomLeft?.IsChecked == true) AppConfig.Instance.PopupPosition = PopupPosition.BottomLeft;
+		else if (PosTopRight?.IsChecked == true) AppConfig.Instance.PopupPosition = PopupPosition.TopRight;
+		else if (PosTopLeft?.IsChecked == true) AppConfig.Instance.PopupPosition = PopupPosition.TopLeft;
+		AppConfig.Save();
+	}
+
+	private void PopupScale_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) {
+		if (ScaleValueText != null) ScaleValueText.Text = ((float)Math.Round(e.NewValue, 1)).ToString("0.0");
+		if (!_configReady) return;
+		float scale = (float)Math.Round(e.NewValue, 1);
+		AppConfig.Instance.PopupScale = scale;
+		AppConfig.Save();
+		PopupStack.ApplyScale();
+	}
+
+	private int _testPopupCounter = 0;
+	private void TestPopup_Click(object sender, RoutedEventArgs e) {
+		_testPopupCounter++;
+		PopupStack.Show($"__test_{_testPopupCounter}__", "Achievement Unlocked", "This is a test popup.", null, 7, 10);
 	}
 
 	private void ResetProgress_Click(object sender, RoutedEventArgs e) {

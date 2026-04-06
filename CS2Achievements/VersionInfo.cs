@@ -40,8 +40,9 @@ public static class VersionInfo
 		string latest = root.GetProperty("tag_name").GetString() ?? "";
 		string? url = root.GetProperty("html_url").GetString();
 
+		var current = CurrentVersion.Split('+')[0];
 		bool updateAvailable = !string.IsNullOrEmpty(latest)
-			&& !string.Equals(latest.TrimStart('v'), CurrentVersion.TrimStart('v'), StringComparison.OrdinalIgnoreCase);
+			&& !string.Equals(latest.TrimStart('v'), current.TrimStart('v'), StringComparison.OrdinalIgnoreCase);
 
 		return (updateAvailable, latest, url);
 	}

@@ -9,12 +9,22 @@ public enum PopupMode
 	AtMilestones
 }
 
+public enum PopupPosition
+{
+	BottomRight,
+	BottomLeft,
+	TopRight,
+	TopLeft
+}
+
 public class AppConfig
 {
 	public static AppConfig Instance { get; private set; } = new();
 
 	public PopupMode ProgressPopups { get; set; } = PopupMode.Always;
 	public bool ShowUnlockPopups { get; set; } = true;
+	public PopupPosition PopupPosition { get; set; } = PopupPosition.BottomRight;
+	public float PopupScale { get; set; } = 1.0f;
 
 	static readonly string ConfigDir = Path.Combine(
 		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CS2Achievements");

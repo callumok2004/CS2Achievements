@@ -35,6 +35,7 @@ namespace CS2Achievements
 		private readonly Image? _icon;
 		private int _progress;
 		private int _maxProgress;
+		private float _scale;
 
 		private static readonly Color BgColor = Color.FromArgb(22, 25, 31);
 		private static readonly Color IconBgColor = Color.FromArgb(13, 15, 19);
@@ -51,6 +52,7 @@ namespace CS2Achievements
 			_icon = icon;
 			_progress = progress;
 			_maxProgress = maxProgress;
+			_scale = Math.Clamp(AppConfig.Instance.PopupScale, 0.5f, 3.0f);
 
 			DoubleBuffered = true;
 			SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
@@ -59,12 +61,17 @@ namespace CS2Achievements
 			ShowInTaskbar = false;
 			TopMost = true;
 			BackColor = BgColor;
-			Width = 360;
-			Height = 90;
+			Width = (int)(360 * _scale);
+			Height = (int)(90 * _scale);
 
+			var cfg = AppConfig.Instance;
 			var bounds = PopupStack.GetCS2Bounds();
-			TargetY = bounds.Bottom;
-			Location = new Point(bounds.Right - Width - 10, bounds.Bottom);
+			bool isRight = cfg.PopupPosition == PopupPosition.BottomRight || cfg.PopupPosition == PopupPosition.TopRight;
+			bool isBottom = cfg.PopupPosition == PopupPosition.BottomRight || cfg.PopupPosition == PopupPosition.BottomLeft;
+			int x = isRight ? bounds.Right - Width - 10 : bounds.Left + 10;
+			int spawnY = isBottom ? bounds.Bottom : bounds.Top - Height;
+			TargetY = spawnY;
+			Location = new Point(x, spawnY);
 
 			closeTimer = new System.Windows.Forms.Timer { Interval = 4000 };
 			closeTimer.Tick += (s, e) => {
@@ -73,6 +80,13 @@ namespace CS2Achievements
 				if (!IsDisposed) PopupStack.StartLeave(this);
 			};
 			closeTimer.Start();
+		}
+
+		public void Rescale(float scale) {
+			_scale = scale;
+			Width = (int)(360 * _scale);
+			Height = (int)(90 * _scale);
+			Invalidate();
 		}
 
 		public void Update(string description, int progress, int maxProgress) {
@@ -92,30 +106,31 @@ namespace CS2Achievements
 
 			g.Clear(BgColor);
 
-			const int iconAreaW = 80;
+			int iconAreaW = (int)(80 * _scale);
+			int pad = (int)(7 * _scale);
 			g.FillRectangle(new SolidBrush(IconBgColor), 0, 0, iconAreaW, Height);
 			if (_icon != null) {
-				const int pad = 7;
 				g.DrawImage(_icon, new Rectangle(pad, pad, iconAreaW - pad * 2, Height - pad * 2));
 			}
 
 			g.DrawLine(new Pen(BorderColor, 1), iconAreaW, 0, iconAreaW, Height);
 
-			const int cx = iconAreaW + 12;
-			int cw = Width - cx - 10;
+			int cx = iconAreaW + (int)(12 * _scale);
+			int cw = Width - cx - (int)(10 * _scale);
 
-			using var titleFont = new Font("Segoe UI", 10.5f, FontStyle.Bold, GraphicsUnit.Point);
-			g.DrawString(_title, titleFont, new SolidBrush(TitleColor), cx, 10);
+			using var titleFont = new Font("Segoe UI", 10.5f * _scale, FontStyle.Bold, GraphicsUnit.Point);
+			g.DrawString(_title, titleFont, new SolidBrush(TitleColor), cx, (int)(10 * _scale));
 
-			using var descFont = new Font("Segoe UI", 8.5f, FontStyle.Regular, GraphicsUnit.Point);
+			using var descFont = new Font("Segoe UI", 8.5f * _scale, FontStyle.Regular, GraphicsUnit.Point);
 			string descText = _maxProgress > 0 ? $"{_description}  ({_progress}/{_maxProgress})" : _description;
-			var descRect = new RectangleF(cx, 34, cw, Height - 34 - (_maxProgress > 0 ? 20 : 10));
+			int descBottomReserve = _maxProgress > 0 ? (int)(20 * _scale) : (int)(10 * _scale);
+			var descRect = new RectangleF(cx, (int)(34 * _scale), cw, Height - (int)(34 * _scale) - descBottomReserve);
 			var fmt = new StringFormat { Trimming = StringTrimming.Word };
 			g.DrawString(descText, descFont, new SolidBrush(DescColor), descRect, fmt);
 
 			if (_maxProgress > 0) {
-				const int barH = 4;
-				int barY = Height - 14;
+				int barH = Math.Max(1, (int)(4 * _scale));
+				int barY = Height - (int)(14 * _scale);
 				float fraction = Math.Clamp((float)_progress / _maxProgress, 0f, 1f);
 				g.FillRectangle(new SolidBrush(BarBgColor), cx, barY, cw, barH);
 				if (fraction > 0)
@@ -185,10 +200,14 @@ namespace CS2Achievements
 
 		private static void AnimationTick(object? sender, EventArgs e) {
 			var bounds = GetCS2Bounds();
+			var pos = AppConfig.Instance.PopupPosition;
+			bool isRight = pos == PopupPosition.BottomRight || pos == PopupPosition.TopRight;
+			bool isBottom = pos == PopupPosition.BottomRight || pos == PopupPosition.BottomLeft;
+
 			foreach (var popup in popups.ToList()) {
 				if (popup.IsDisposed) continue;
 
-				int targetX = bounds.Right - popup.Width - 10;
+				int targetX = isRight ? bounds.Right - popup.Width - 10 : bounds.Left + 10;
 				if (popup.Left != targetX)
 					popup.Left = targetX;
 
@@ -208,7 +227,12 @@ namespace CS2Achievements
 				else
 					popup.Region = new Region(Rectangle.Empty);
 
-				if (popup.IsLeaving && next >= bounds.Bottom + popup.Height) {
+				if (isBottom && popup.IsLeaving && next >= bounds.Bottom + popup.Height) {
+					popups.Remove(popup);
+					popup.Close();
+					UpdatePositions();
+				}
+				else if (!isBottom && popup.IsLeaving && next <= bounds.Top - popup.Height) {
 					popups.Remove(popup);
 					popup.Close();
 					UpdatePositions();
@@ -234,7 +258,12 @@ namespace CS2Achievements
 		public static void StartLeave(AchievementPopup popup) {
 			if (popup.IsDisposed || popup.IsLeaving) return;
 			popup.IsLeaving = true;
-			popup.TargetY = GetCS2Bounds().Bottom + popup.Height + 10;
+			var pos = AppConfig.Instance.PopupPosition;
+			bool isBottom = pos == PopupPosition.BottomRight || pos == PopupPosition.BottomLeft;
+			var bounds = GetCS2Bounds();
+			popup.TargetY = isBottom
+				? bounds.Bottom + popup.Height + 10
+				: bounds.Top - popup.Height - 10;
 			UpdatePositions();
 		}
 
@@ -255,15 +284,39 @@ namespace CS2Achievements
 			}, null);
 		}
 
+		public static void ApplyScale() {
+			if (_syncContext == null) return;
+			float scale = Math.Clamp(AppConfig.Instance.PopupScale, 0.5f, 3.0f);
+			_syncContext.Post(_ => {
+				foreach (var p in popups.ToList()) {
+					if (!p.IsDisposed) p.Rescale(scale);
+				}
+				UpdatePositions();
+			}, null);
+		}
+
 		internal static void UpdatePositions() {
 			var bounds = GetCS2Bounds();
-			int y = bounds.Bottom - 10;
-			for (int i = popups.Count - 1; i >= 0; i--) {
-				var p = popups[i];
-				if (p.IsLeaving) continue;
-				y -= p.Height;
-				p.TargetY = y;
-				y -= popupSpacing;
+			var pos = AppConfig.Instance.PopupPosition;
+			bool isBottom = pos == PopupPosition.BottomRight || pos == PopupPosition.BottomLeft;
+
+			if (isBottom) {
+				int y = bounds.Bottom - 10;
+				for (int i = popups.Count - 1; i >= 0; i--) {
+					var p = popups[i];
+					if (p.IsLeaving) continue;
+					y -= p.Height;
+					p.TargetY = y;
+					y -= popupSpacing;
+				}
+			} else {
+				int y = bounds.Top + 10;
+				for (int i = 0; i < popups.Count; i++) {
+					var p = popups[i];
+					if (p.IsLeaving) continue;
+					p.TargetY = y;
+					y += p.Height + popupSpacing;
+				}
 			}
 		}
 	}
