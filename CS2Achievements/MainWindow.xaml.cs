@@ -33,6 +33,7 @@ public partial class MainWindow : Window
 	private readonly DispatcherTimer _refreshTimer;
 	private readonly DispatcherTimer _statusTimer;
 	private bool _configReady;
+	private System.Windows.Forms.NotifyIcon? _trayIcon;
 
 	public MainWindow() {
 		InitializeComponent();
@@ -53,6 +54,8 @@ public partial class MainWindow : Window
 		VersionInfoText.Text = $"Current version: {VersionInfo.CurrentVersion}";
 
 		InitConfigControls();
+
+		InitTrayIcon();
 
 		RefreshAchievements();
 		_refreshTimer.Start();
@@ -89,6 +92,49 @@ public partial class MainWindow : Window
 	private void MaximizeClick(object sender, RoutedEventArgs e) =>
 		WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 	private void CloseClick(object sender, RoutedEventArgs e) => Close();
+
+	private void InitTrayIcon() {
+		System.Drawing.Icon icon;
+		var sri = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/icon.ico"));
+		icon = sri != null ? new System.Drawing.Icon(sri.Stream) : System.Drawing.SystemIcons.Application;
+
+		var menu = new System.Windows.Forms.ContextMenuStrip();
+		var openItem = new System.Windows.Forms.ToolStripMenuItem("Open CS2 Achievements");
+		openItem.Click += (_, _) => ShowFromTray();
+		var exitItem = new System.Windows.Forms.ToolStripMenuItem("Exit");
+		exitItem.Click += (_, _) => Dispatcher.Invoke(Close);
+		menu.Items.Add(openItem);
+		menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+		menu.Items.Add(exitItem);
+
+		_trayIcon = new System.Windows.Forms.NotifyIcon {
+			Icon = icon,
+			Text = "CS2 Achievements",
+			ContextMenuStrip = menu,
+			Visible = false
+		};
+		_trayIcon.DoubleClick += (_, _) => ShowFromTray();
+	}
+
+	private void TrayClick(object sender, RoutedEventArgs e) {
+		Hide();
+		_trayIcon!.Visible = true;
+	}
+
+	private void ShowFromTray() {
+		Dispatcher.Invoke(() => {
+			Show();
+			if (WindowState == WindowState.Minimized)
+				WindowState = WindowState.Normal;
+			Activate();
+			_trayIcon!.Visible = false;
+		});
+	}
+
+	protected override void OnClosed(EventArgs e) {
+		_trayIcon?.Dispose();
+		base.OnClosed(e);
+	}
 
 	protected override void OnStateChanged(EventArgs e) {
 		base.OnStateChanged(e);

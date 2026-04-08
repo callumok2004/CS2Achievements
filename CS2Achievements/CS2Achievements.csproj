@@ -9,6 +9,7 @@
     <Nullable>enable</Nullable>
     <Version>0.0.0</Version>
     <InformationalVersion>$(Version)</InformationalVersion>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Images\**\*.*" />
+    <Resource Include="icon.ico" />
   </ItemGroup>
 
 </Project>

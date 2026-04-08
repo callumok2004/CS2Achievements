@@ -9,6 +9,7 @@
 	MinWidth="640"
 	MinHeight="480"
 	Background="#171A21"
+	Icon="icon.ico"
 	Loaded="Window_Loaded"
 	WindowStartupLocation="CenterScreen"
 	WindowStyle="None">
@@ -441,6 +442,11 @@
 					HorizontalAlignment="Right"
 					Orientation="Horizontal"
 					WindowChrome.IsHitTestVisibleInChrome="True">
+					<Button
+						Click="TrayClick"
+						Content="▾"
+						Style="{StaticResource CaptionBtn}"
+						ToolTip="Minimize to tray" />
 					<Button
 						Click="MinimizeClick"
 						Content="─"
