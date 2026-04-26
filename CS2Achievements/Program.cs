@@ -4,6 +4,8 @@ using CounterStrike2GSI;
 using CounterStrike2GSI.EventMessages;
 using CounterStrike2GSI.Nodes;
 
+using System.Diagnostics;
+
 namespace CS2Achievements;
 
 public static class Global
@@ -17,6 +19,8 @@ public static class Global
 	public static bool IsFirstRound;
 	public static bool IsLastRound;
 	public static bool IsPistolRound;
+	public static int CurrentRound;
+	public static DateTime LastHealthChange;
 	public static RoundData CurrentRoundData = new();
 	public static List<RecentKill> RecentKills = [];
 
@@ -35,6 +39,7 @@ public struct RoundData()
 	public int Health;
 	public int Kills;
 	public int HeadshotKills;
+	public bool Died;
 	public HashSet<string> UniqueWeaponsUsed = [];
 }
 
@@ -71,9 +76,12 @@ public static class GameService
 		_gsl.GamemodeChanged += OnGamemodeChanged;
 		_gsl.MapUpdated += OnMapUpdated;
 		_gsl.MatchStarted += OnMatchStarted;
-		_gsl.BombExploded += OnBombExploded;
+		// _gsl.BombExploded += OnBombExploded;
 		_gsl.PlayerHealthChanged += OnPlayerHealthChanged;
 		_gsl.Gameover += OnGameover;
+		// _gsl.KillFeed += OnKillFeed;
+		_gsl.PlayerMoneyAmountChanged += OnPlayerMoneyAmountChanged;
+		_gsl.PlayerDied += OnPlayerDied;
 
 		if (!_gsl.Start()) {
 			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator.");
@@ -105,6 +113,16 @@ public static class GameService
 		}.Start();
 	}
 
+	private static void OnPlayerDied(PlayerDied game_event) => CurrentRoundData.Died = true;
+
+	private static void OnPlayerMoneyAmountChanged(PlayerMoneyAmountChanged game_event) {
+		// Console.WriteLine($"money changed ({game_event.Previous} => {game_event.New}) ({game_event.New - game_event.Previous}) {CurrentRound}");
+	}
+
+	// private static void OnKillFeed(KillFeed game_event) {
+	// 	// Console.WriteLine("got killfeed event");
+	// }
+
 	public static void Stop() {
 		_running = false;
 		_gsl?.Stop();
@@ -121,6 +139,14 @@ public static class GameService
 
 	private static void OnBombStateUpdated(BombStateUpdated game_event) {
 		Logger.Debug($"The bomb is now {game_event.New}.");
+		// Console.WriteLine($"The bomb is now {game_event.New}.");
+
+		// if (game_event.New == BombState.Planted) {
+
+		// }
+		// else if (game_event.New == BombState.Defused) {
+
+		// }
 	}
 
 	private static void OnGamemodeChanged(GamemodeChanged game_event) {
@@ -140,7 +166,7 @@ public static class GameService
 
 	private static void OnPlayerGotKill(PlayerGotKill game_event) {
 		if (game_event.Player.SteamID == SteamID) {
-
+			Logger.Debug($"Got a kill with {game_event.Weapon.Name}");
 			CurrentRoundData.Kills++;
 			if (game_event.IsHeadshot) CurrentRoundData.HeadshotKills++;
 
@@ -172,25 +198,48 @@ public static class GameService
 	private static async void OnRoundStarted(RoundStarted game_event) { // Fun fact, this is triggered as soon as a round ends, and NOT when the next freeze time starts, fun
 		await Task.Delay(250);
 		CurrentRoundData = new();
+		CurrentRound = game_event.Round;
 		IsFirstRound = game_event.IsFirstRound;
 		IsLastRound = game_event.IsLastRound;
 		IsPistolRound = game_event.IsFirstRound || game_event.Round == 13;
+		LastHealthChange = DateTime.Now;
+		AchievementTimers.DestroyAll();
 	}
 
 	private static void OnRoundConcluded(RoundConcluded game_event) {
+		// Console.WriteLine("Round Concluded");
 		if (game_event.WinningTeam == CurrentTeam) {
 			Achievements.OnEvent(Event.RoundWon, game_event);
 			if (game_event.IsLastRound)
 				Achievements.OnEvent(Event.MatchWon, game_event);
 		}
+
+		Logger.Debug($"Round concluded - {game_event.RoundConclusionReason}");
+
 		Achievements.FlushRoundEndPopups();
+		AchievementTimers.DestroyAll();
 	}
 
 	private static void OnBombExploded(BombExploded game_event) {
 		// Console.WriteLine($"BombExploded");
 	}
 
-	private static void OnPlayerHealthChanged(PlayerHealthChanged game_event) => CurrentRoundData.Health = game_event.New;
+	private static void OnPlayerHealthChanged(PlayerHealthChanged game_event) {
+		CurrentRoundData.Health = game_event.New;
+		LastHealthChange = DateTime.Now;
+
+		if (!Achievements.OnArmsRace().Invoke(game_event))
+			return;
+
+		if (game_event.New < 10 && game_event.New > 0) {
+			AchievementTimers.Create("Still Alive", () => {
+				if (Achievements.HealthUnchangedForSeconds(5).Invoke(null) && CurrentRoundData.Health < 10)
+					Achievements.IncrementAchievementProgress("Still Alive", 1);
+			}, 5 * 1000);
+		}
+		else
+			AchievementTimers.Destroy("Still Alive");
+	}
 
 	// private static void OnPlayerKillsChanged(PlayerKillsChanged game_event) {
 	// 	Console.WriteLine($"PlayerKillsChanged: {game_event.New}");
@@ -200,6 +249,54 @@ public static class GameService
 	// 	Console.WriteLine($"PlayerRoundKillsChanged: {game_event.New}");
 	// }
 
-	private static void OnGameover(Gameover game_event) => Achievements.OnEvent(Event.GameOver, game_event);
+	private static async void OnGameover(Gameover game_event) {
+		Achievements.OnEvent(Event.GameOver, game_event);
+		Logger.Information("Game over!");
+
+		int kills = CurrentRoundData.Kills;
+		await Task.Delay(250);
+		// Console.WriteLine("delayed check, race conditions yippie");
+		if (kills < CurrentRoundData.Kills)
+			Achievements.CheckAchievement("ArmsRaceWin");
+	}
 }
 
+public static class AchievementTimers
+{
+	static readonly Dictionary<string, (Timer timer, int version)> Timers = new();
+
+	public static void Create(string name, Action action, int delayMs) {
+		Destroy(name);
+
+		int version = 0;
+
+		Timer? timer = null;
+		timer = new Timer(_ => {
+			if (!Timers.TryGetValue(name, out var entry))
+				return;
+
+			if (entry.version != version)
+				return;
+
+			action();
+
+			Destroy(name);
+		}, null, delayMs, Timeout.Infinite);
+
+		Timers[name] = (timer, version);
+	}
+
+	public static void Destroy(string name) {
+		if (Timers.TryGetValue(name, out var entry)) {
+			entry.timer.Dispose();
+			Timers.Remove(name);
+		}
+	}
+
+	public static void DestroyAll() {
+		foreach (var timer in Timers.Values)
+			timer.timer.Dispose();
+
+		Timers.Clear();
+	}
+}

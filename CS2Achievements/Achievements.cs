@@ -5,6 +5,7 @@ using CounterStrike2GSI.Nodes;
 
 using System.Reflection;
 using System.Text.Json.Serialization;
+using System.Diagnostics;
 
 namespace CS2Achievements;
 
@@ -86,6 +87,11 @@ public struct Achievement
 	/// </summary>
 	[JsonIgnore]
 	public HashSet<string>? RequiredAchievements { get; set; }
+	/// <summary>
+	/// All named achievements must be complete for this one to unlock. No progress popups.
+	/// </summary>
+	[JsonIgnore]
+	public string? CheckGroup { get; set; }
 }
 
 public static class Achievements
@@ -259,8 +265,8 @@ public static class Achievements
 		new () { Name = "Inferno Map Veteran", Description = "Win 100 rounds on Inferno.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_inferno"), WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Nuke Map Veteran", Description = "Win 100 rounds on Nuke.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_nuke"), WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Train Map Veteran", Description = "Win 100 rounds on Train.", MaxProgress = 100, Category = Category.GlobalExpertise, OnEvent = Event.RoundWon, Filters = [WithMap("de_train"), WithGameMode(GameMode.Competitive)] },
-		// new () { Name = "Shoots Vet", Description = "Win five matches in Arms Race mode on Shoots.", MaxProgress = 5, Category = Category.GlobalExpertise },
-		// new () { Name = "Baggage Claimer", Description = "Win five matches in Arms Race mode on Baggage.", MaxProgress = 5, Category = Category.GlobalExpertise },
+		new () { Name = "Shoots Vet", Description = "Win five matches in Arms Race mode on Shoots.", MaxProgress = 5, Category = Category.GlobalExpertise, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife(), WithAnyOfMaps("ar_shoots", "ar_shoots_night")] },
+		new () { Name = "Baggage Claimer", Description = "Win five matches in Arms Race mode on Baggage.", MaxProgress = 5, Category = Category.GlobalExpertise, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife(), WithMap("ar_baggage")] },
 		// new () { Name = "Vacation", Description = "Win five matches on Lake.", MaxProgress = 5, Category = Category.GlobalExpertise },
 		// new () { Name = "My House", Description = "Win five matches on Safehouse.", MaxProgress = 5, Category = Category.GlobalExpertise },
 		// new () { Name = "Run of the Mill", Description = "Win five matches on Sugarcane.", MaxProgress = 5, Category = Category.GlobalExpertise },
@@ -271,7 +277,7 @@ public static class Achievements
 		// new () { Name = "Tourist", Description = "Play a round on every Arms Race and Demolition map.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Denied!", Description = "Kill a player who is on gold knife level in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Marksman", Description = "Win a match on every Arms Race and Demolition map.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Rampage!", Description = "Win an Arms Race match without dying.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
+		new () { Name = "Rampage!", Description = "Win an Arms Race match without dying.", MaxProgress = 1, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife(), SurvivedRound()] },
 		// new () { Name = "FIRST!", Description = "Be the first player to get a kill in an Arms Race or Demolition match.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "One Shot One Kill", Description = "Kill three consecutive players using the first bullet of your gun in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Conservationist", Description = "Win an Arms Race match without reloading any of your weapons.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
@@ -283,15 +289,15 @@ public static class Achievements
 		// new () { Name = "Base Scamper", Description = "Kill an enemy just as their respawn protection ends in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Knife on Knife", Description = "Kill an enemy who is on gold knife level with your own knife in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Level Playing Field", Description = "Kill an enemy who is on gold knife level with a sub-machine gun in Arms Race Mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Still Alive", Description = "Survive more than 30 seconds with less than ten health in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
+		new () { Name = "Still Alive", Description = "Survive more than 30 seconds with less than ten health in Arms Race"/* or Demolition mode."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		new () { Name = "Practice Practice Practice", Description = "Play 100 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 100, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()] },
 		new () { Name = "Gun Collector", Description = "Play 500 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 500, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], Prerequisite = "Practice Practice Practice" },
 		new () { Name = "King of the Kill", Description = "Play 5,000 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 5_000, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], Prerequisite = "Gun Collector" },
-		// new () { Name = "Gungamer", Description = "Win one match in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Keep on Gunning", Description = "Win 25 matches in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Kill of the Century", Description = "Win 100 matches in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "The Professional", Description = "Win 500 matches in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Cold Pizza Eater", Description = "Win 1,000 matches in Arms Race or Demolition mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
+		new () { Name = "Gungamer", Description = "Win one match in Arms Race"/* or Demolition mode."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()] },
+		new () { Name = "Keep on Gunning", Description = "Win 25 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 25, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "Gungamer" },
+		new () { Name = "Kill of the Century", Description = "Win 100 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 100, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "Keep on Gunning" },
+		new () { Name = "The Professional", Description = "Win 500 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 500, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "Kill of the Century" },
+		new () { Name = "Cold Pizza Eater", Description = "Win 1,000 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 1_000, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "The Professional" },
 		// new () { Name = "Repeat Offender", Description = "Dominate an enemy.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Decimator", Description = "Dominate ten enemies.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Insurgent", Description = "Kill an enemy who is dominating you.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
@@ -400,7 +406,10 @@ public static class Achievements
 			}
 
 			var achievement = AchievementList[idx];
-			if (achievement.Complete) return;
+			if (achievement.Complete) {
+				// Logger.Debug($"Progress for achievement '{achievement.Name}'complete!");
+				return;
+			}
 			if (achievement.Items != null) return;
 
 			int oldProgress = achievement.Progress;
@@ -573,6 +582,18 @@ public static class Achievements
 		}
 	}
 
+	public static void CheckAchievement(string group, object? data = null) {
+		if (_loadedSteamId == null) return;
+
+		foreach (Achievement achievement in AchievementList.ToList()) {
+			if (achievement.CheckGroup != group)
+				continue;
+
+			if (achievement.Filters == null || achievement.Filters.All(f => f(data)))
+				IncrementAchievementProgress(achievement.Name);
+		}
+	}
+
 	public static void OnEvent(Event eventName, object? data = null) {
 		if (_loadedSteamId == null) return;
 		foreach (Achievement achievement in AchievementList.ToList()) {
@@ -598,4 +619,7 @@ public static class Achievements
 	public static Func<object?, bool> WithRoundHeadshots(int headshots) => data => CurrentRoundData.HeadshotKills == headshots;
 	public static Func<object?, bool> WithUniqueWeaponsUsed(int count) => data => CurrentRoundData.UniqueWeaponsUsed.Count >= count;
 	public static Func<object?, bool> OnArmsRace() => data => CurrentMap.StartsWith("ar_", StringComparison.OrdinalIgnoreCase);
+	public static Func<object?, bool> HealthUnchangedForSeconds(int seconds) => data => (DateTime.Now - LastHealthChange).TotalSeconds >= seconds;
+	public static Func<object?, bool> OnlyKnife() => data => Self!.Weapons.All(w => w.Type == WeaponType.Knife);
+	public static Func<object?, bool> SurvivedRound() => data => !CurrentRoundData.Died;
 }
