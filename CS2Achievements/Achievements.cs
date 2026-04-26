@@ -88,7 +88,7 @@ public struct Achievement
 	[JsonIgnore]
 	public HashSet<string>? RequiredAchievements { get; set; }
 	/// <summary>
-	/// All named achievements must be complete for this one to unlock. No progress popups.
+	/// Group of achievements not tied to an event to manually check.
 	/// </summary>
 	[JsonIgnore]
 	public string? CheckGroup { get; set; }
