@@ -27,7 +27,8 @@ public enum Event
 	KilledPlayer,
 	RoundWon,
 	MatchWon,
-	GameOver
+	GameOver,
+	BombPlanted
 }
 
 public struct Achievement
@@ -92,6 +93,11 @@ public struct Achievement
 	/// </summary>
 	[JsonIgnore]
 	public string? CheckGroup { get; set; }
+	/// <summary>
+	/// Function to call when progress was incremented, even if already completed.
+	/// </summary>
+	[JsonIgnore]
+	public Action? OnIncrement { get; set; }
 }
 
 public static class Achievements
@@ -142,17 +148,17 @@ public static class Achievements
 
 	public static readonly List<Achievement> AchievementList = [
 		new () { Name = "Awardist", Description = "Earn 100 achievements.", MaxProgress = 100, Category = Category.TeamTactics },
-		// new () { Name = "Someone Set Up Us The Bomb", Description = "Win a round by planting a bomb.", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "Someone Set Up Us The Bomb", Description = "Win a round by planting a bomb.", MaxProgress = 1, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [PlantedTheBomb()] },
 		// new () { Name = "Rite of First Defusal", Description = "Win a round by defusing a bomb.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Second to None", Description = "Successfully defuse a bomb with less than one second remaining.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Counter-Counter-Terrorist", Description = "Kill a Counter-Terrorist while he is defusing the bomb.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Short Fuse", Description = "Plant a bomb within 25 seconds [excluding Demolition mode].", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "Short Fuse", Description = "Plant a bomb within 25 seconds."/* [excluding Demolition mode]."*/, MaxProgress = 1, Category = Category.TeamTactics, OnEvent = Event.BombPlanted, Filters = [HasBomb(3), RoundStartedWithin(29)] }, // Some head-room in timing because sometimes this event is delayed??
 		// new () { Name = "Participation Award", Description = "Kill an enemy within three seconds after they recover a dropped bomb.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Clusterstruck", Description = "Kill five enemies with a bomb you have planted.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Wild Gooseman Chase", Description = "As the last living Terrorist, distract a defuser long enough for the bomb to explode.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Blast Will and Testamant", Description = "Win a round by picking up the bomb from a fallen comrade and successfully planting it.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Defusus Interruptus", Description = "Stop defusing the bomb long enough to kill an enemy, then successfully finish defusing it.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "Boomala Boomala", Description = "Plant 100 bombs.", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "Boomala Boomala", Description = "Plant 100 bombs.", MaxProgress = 100, Category = Category.TeamTactics, OnEvent = Event.BombPlanted, Filters = [HasBomb(3)], OnIncrement = () => CurrentRoundData.PlantedTheBomb = true },
 		// new () { Name = "The Hurt Blocker", Description = "Defuse 100 bombs successfully.", MaxProgress = 100, Category = Category.TeamTactics },
 		// new () { Name = "Good Shepherd", Description = "Rescue all hostages in a single round.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Dead Shepherd", Description = "Kill an enemy who is carrying a hostage.", MaxProgress = 1, Category = Category.TeamTactics },
@@ -406,6 +412,7 @@ public static class Achievements
 			}
 
 			var achievement = AchievementList[idx];
+			achievement.OnIncrement?.Invoke();
 			if (achievement.Complete) {
 				// Logger.Debug($"Progress for achievement '{achievement.Name}'complete!");
 				return;
@@ -622,4 +629,7 @@ public static class Achievements
 	public static Func<object?, bool> HealthUnchangedForSeconds(int seconds) => data => (DateTime.Now - LastHealthChange).TotalSeconds >= seconds;
 	public static Func<object?, bool> OnlyKnife() => data => Self!.Weapons.All(w => w.Type == WeaponType.Knife);
 	public static Func<object?, bool> SurvivedRound() => data => !CurrentRoundData.Died;
+	public static Func<object?, bool> HasBomb(int seconds) => data => Self!.Weapons.Any(x => x.Name == "weapon_c4") || CurrentRoundData.HasBomb || (DateTime.Now - CurrentRoundData.LastHadBomb).TotalSeconds <= seconds;
+	public static Func<object?, bool> PlantedTheBomb() => data => data is RoundConcluded evnt && evnt.RoundConclusionReason == RoundConclusion.T_Win_Bomb && CurrentRoundData.PlantedTheBomb;
+	public static Func<object?, bool> RoundStartedWithin(int seconds) => data => (DateTime.Now - CurrentRoundData.RoundStart).TotalSeconds <= seconds;
 }

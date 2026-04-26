@@ -35,7 +35,10 @@ public struct RecentKill
 
 public struct RoundData()
 {
+	public DateTime RoundStart = DateTime.Now;
 	public bool HasBomb;
+	public bool PlantedTheBomb;
+	public DateTime LastHadBomb;
 	public int Health;
 	public int Kills;
 	public int HeadshotKills;
@@ -82,6 +85,7 @@ public static class GameService
 		// _gsl.KillFeed += OnKillFeed;
 		_gsl.PlayerMoneyAmountChanged += OnPlayerMoneyAmountChanged;
 		_gsl.PlayerDied += OnPlayerDied;
+		_gsl.RoundPhaseUpdated += OnRoundPhaseUpdated;
 
 		if (!_gsl.Start()) {
 			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator.");
@@ -113,6 +117,14 @@ public static class GameService
 		}.Start();
 	}
 
+	private static void OnRoundPhaseUpdated(RoundPhaseUpdated game_event) {
+		if (game_event.New == Phase.Live) {
+			CurrentRoundData.RoundStart = DateTime.Now;
+			if (Self!.Weapons.Any(w => w.Name == "weapon_c4"))
+				CurrentRoundData.HasBomb = true;
+		}
+	}
+
 	private static void OnPlayerDied(PlayerDied game_event) => CurrentRoundData.Died = true;
 
 	private static void OnPlayerMoneyAmountChanged(PlayerMoneyAmountChanged game_event) {
@@ -141,9 +153,10 @@ public static class GameService
 		Logger.Debug($"The bomb is now {game_event.New}.");
 		// Console.WriteLine($"The bomb is now {game_event.New}.");
 
-		// if (game_event.New == BombState.Planted) {
-
-		// }
+		if (game_event.New == BombState.Planted) {
+			Logger.Debug($"firing BombPlanted event");
+			Achievements.OnEvent(Event.BombPlanted, game_event);
+		}
 		// else if (game_event.New == BombState.Defused) {
 
 		// }
@@ -188,8 +201,10 @@ public static class GameService
 	}
 	private static void OnPlayerWeaponsDropped(PlayerWeaponsDropped game_event) {
 		if (game_event.Player.SteamID == SteamID) {
-			if (game_event.Weapons.Any(w => w.Name == "weapon_c4"))
+			if (game_event.Weapons.Any(w => w.Name == "weapon_c4")) {
 				CurrentRoundData.HasBomb = false;
+				CurrentRoundData.LastHadBomb = DateTime.Now;
+			}
 		}
 	}
 
