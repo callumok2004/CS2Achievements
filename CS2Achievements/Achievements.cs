@@ -168,7 +168,7 @@ public static class Achievements
 		new () { Name = "Newb World Order", Description = "Win ten rounds.", MaxProgress = 10, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)] },
 		new () { Name = "Pro-moted", Description = "Win 200 rounds.", MaxProgress = 200, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)], Prerequisite = "Newb World Order" },
 		new () { Name = "Leet-er of Men", Description = "Win 5,000 rounds.", MaxProgress = 5_000, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive)], Prerequisite = "Pro-moted" },
-		// new () { Name = "Blitzkrieg", Description = "Win a round against five enemies in less than thirty seconds.", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "Blitzkrieg", Description = "Win a round against five enemies in less than thirty seconds.", MaxProgress = 1, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters =  [RoundStartedWithin(30)] },
 		// new () { Name = "Mercy Rule", Description = "Kill the entire opposing team without any members of your team dying.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Clean Sweep", Description = "Kill the entire opposing team without any members of your team taking any damage.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Killanthropist", Description = "Donate 100 weapons to your teammates.", MaxProgress = 1, Category = Category.TeamTactics },
@@ -176,7 +176,7 @@ public static class Achievements
 		// new () { Name = "War Bonds", Description = "Earn $50,000 total cash.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Spoils of War", Description = "Earn $2,500,000 total cash.", MaxProgress = 1, Category = Category.TeamTactics },
 		// new () { Name = "Blood Money", Description = "Earn $50,000,000 total cash.", MaxProgress = 1, Category = Category.TeamTactics },
-		// new () { Name = "The Cleaner", Description = "In Classic mode, kill five enemies in a single round.", MaxProgress = 1, Category = Category.TeamTactics },
+		new () { Name = "The Cleaner", Description = "In Classic mode, kill five enemies in a single round.", MaxProgress = 1, Category = Category.TeamTactics, OnEvent = Event.KilledPlayer, Filters = [WithAce(), WithGameMode(GameMode.Casual)] },
 		// new () { Name = "War of Attrition", Description = "Be the last player alive in a round with five players on your team.", MaxProgress = 1, Category = Category.TeamTactics },
 		new () { Name = "Piece Initiative", Description = "Win 5 Pistol Rounds in Competitive Mode.", MaxProgress = 5, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive), OnPistolRound()] },
 		new () { Name = "Give Piece a Chance", Description = "Win 25 Pistol Rounds in Competitive Mode.", MaxProgress = 25, Category = Category.TeamTactics, OnEvent = Event.RoundWon, Filters = [WithGameMode(GameMode.Competitive), OnPistolRound()], Prerequisite = "Piece Initiative" },
@@ -192,8 +192,8 @@ public static class Achievements
 		new () { Name = "Battle Sight Zero", Description = "Kill 250 enemies with headshots.", MaxProgress = 250, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WithHeadshot()] },
 		// new () { Name = "Shrapnelproof", Description = "Take 80 points of damage from enemy grenades and still survive the round.", MaxProgress = 1, Category = Category.CombatSkills },
 		// new () { Name = "Blind Ambition", Description = "Kill 25 enemies blinded by flashbangs.", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
-		// new () { Name = "Spray and Pray", Description = "Kill two enemies while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills },
+		new () { Name = "Blind Fury", Description = "Kill an enemy while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WhileBlind()] },
+		new () { Name = "Spray and Pray", Description = "Kill two enemies while you are blinded from a flashbang .", MaxProgress = 1, Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Filters = [WhileBlind(), ConsecutiveBlindKills(2)] },
 		// new () { Name = "Friendly Firearms", Description = "Kill 100 enemies with enemy weapons.", MaxProgress = 1, Category = Category.CombatSkills },
 		new () { Name = "Expert Marksman", Description = "Get a kill with every weapon", Category = Category.CombatSkills, OnEvent = Event.KilledPlayer, Items = AllWeapons},
 		// new () { Name = "Make the Cut", Description = "Win a knife fight.", MaxProgress = 1, Category = Category.CombatSkills },
@@ -414,7 +414,7 @@ public static class Achievements
 			var achievement = AchievementList[idx];
 			achievement.OnIncrement?.Invoke();
 			if (achievement.Complete) {
-				// Logger.Debug($"Progress for achievement '{achievement.Name}'complete!");
+				// Logger.Debug($"Progress for achievement '{achievement.Name}' already complete!");
 				return;
 			}
 			if (achievement.Items != null) return;
@@ -632,4 +632,6 @@ public static class Achievements
 	public static Func<object?, bool> HasBomb(int seconds) => data => Self!.Weapons.Any(x => x.Name == "weapon_c4") || CurrentRoundData.HasBomb || (DateTime.Now - CurrentRoundData.LastHadBomb).TotalSeconds <= seconds;
 	public static Func<object?, bool> PlantedTheBomb() => data => data is RoundConcluded evnt && evnt.RoundConclusionReason == RoundConclusion.T_Win_Bomb && CurrentRoundData.PlantedTheBomb;
 	public static Func<object?, bool> RoundStartedWithin(int seconds) => data => (DateTime.Now - CurrentRoundData.RoundStart).TotalSeconds <= seconds;
+	public static Func<object?, bool> WhileBlind() => data => Flashed;
+	public static Func<object?, bool> ConsecutiveBlindKills(int amount) => data => ConsecutiveFlashKills >= amount;
 }

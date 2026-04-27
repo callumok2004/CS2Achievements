@@ -20,6 +20,8 @@ public static class Global
 	public static bool IsLastRound;
 	public static bool IsPistolRound;
 	public static int CurrentRound;
+	public static bool Flashed;
+	public static int ConsecutiveFlashKills;
 	public static DateTime LastHealthChange;
 	public static RoundData CurrentRoundData = new();
 	public static List<RecentKill> RecentKills = [];
@@ -86,6 +88,8 @@ public static class GameService
 		_gsl.PlayerMoneyAmountChanged += OnPlayerMoneyAmountChanged;
 		_gsl.PlayerDied += OnPlayerDied;
 		_gsl.RoundPhaseUpdated += OnRoundPhaseUpdated;
+		_gsl.PlayerFlashAmountChanged += OnPlayerFlashAmountChanged;
+		_gsl.PlayerKillsChanged += OnPlayerKillsChanged;
 
 		if (!_gsl.Start()) {
 			Logger.Fatal("GameStateListener could not start. Try running this program as Administrator.");
@@ -115,6 +119,25 @@ public static class GameService
 		}) {
 			IsBackground = true
 		}.Start();
+	}
+
+	private static void OnPlayerKillsChanged(PlayerKillsChanged game_event) {
+		if (game_event.New > game_event.Previous) {
+			int diff = game_event.New - game_event.Previous;
+
+			if (diff > 1) { // HACK: See comment at OnPlayerGotKill
+				if (Achievements.WhileBlind().Invoke(game_event))
+					Achievements.IncrementAchievementProgress("Spray and Pray", 1);
+			}
+		}
+	}
+
+	private static void OnPlayerFlashAmountChanged(PlayerFlashAmountChanged game_event) {
+		if (game_event.Player.SteamID != SteamID) return;
+
+		Flashed = game_event.New == 1;
+		if (!Flashed)
+			ConsecutiveFlashKills = 0;
 	}
 
 	private static void OnRoundPhaseUpdated(RoundPhaseUpdated game_event) {
@@ -172,15 +195,17 @@ public static class GameService
 	private static void OnMapUpdated(MapUpdated game_event) {
 		if (game_event.New.Name == CurrentMap) return;
 
-
 		CurrentMap = game_event.New.Name;
 		Logger.Debug($"Map changed to {game_event.New.Name}.");
 	}
 
-	private static void OnPlayerGotKill(PlayerGotKill game_event) {
+	private static void OnPlayerGotKill(PlayerGotKill game_event) { // FUN fact! Getting 2 kills with one bullet will only trigger this ONCE, thanks volvo
 		if (game_event.Player.SteamID == SteamID) {
 			Logger.Debug($"Got a kill with {game_event.Weapon.Name}");
+
 			CurrentRoundData.Kills++;
+
+			if (Flashed) ConsecutiveFlashKills += 1;
 			if (game_event.IsHeadshot) CurrentRoundData.HeadshotKills++;
 
 			CurrentRoundData.UniqueWeaponsUsed.Add(game_event.Weapon.Name);
