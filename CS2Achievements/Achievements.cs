@@ -503,7 +503,7 @@ public static class Achievements
 		return SystemIcons.Question.ToBitmap();
 	}
 
-	internal static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
+	internal static string? NormalizeNameForIcon(string name) => new([.. name.ToLower().Where(c => c != '-' && c != '/' && c != '!').Select(c => char.IsWhiteSpace(c) ? '_' : c)]);
 
 	public static void AddUniqueItem(string achievementName, string item) {
 		lock (_lock) {
@@ -634,4 +634,118 @@ public static class Achievements
 	public static Func<object?, bool> RoundStartedWithin(int seconds) => data => (DateTime.Now - CurrentRoundData.RoundStart).TotalSeconds <= seconds;
 	public static Func<object?, bool> WhileBlind() => data => Flashed;
 	public static Func<object?, bool> ConsecutiveBlindKills(int amount) => data => ConsecutiveFlashKills >= amount;
+
+#if DEBUG
+	public static void GenerateImage(string outputPath) {
+		int padding = 20;
+		int iconSize = 48;
+		int cols = 3;
+
+		int width = 1200;
+		int cellWidth = width / cols;
+
+		using var fontName = new Font("Arial", 14, FontStyle.Bold);
+		using var fontDesc = new Font("Arial", 11, FontStyle.Regular);
+		using var fontCategory = new Font("Arial", 22, FontStyle.Bold);
+
+		var grouped = AchievementList
+				.GroupBy(a => a.Category)
+				.OrderBy(g => g.Key)
+				.ToList();
+
+		int categoryHeaderHeight = 50;
+		int groupSpacing = 40;
+
+		int height = padding;
+
+		using (var tmp = new Bitmap(1, 1))
+		using (var g = Graphics.FromImage(tmp)) {
+			foreach (var group in grouped) {
+				height += categoryHeaderHeight;
+
+				int col = 0;
+				int rowHeight = 0;
+
+				foreach (var a in group) {
+					int textWidth = cellWidth - iconSize - padding * 3;
+
+					var nameH = (int)g.MeasureString(a.Name, fontName, textWidth).Height;
+					var descH = (int)g.MeasureString(a.Description, fontDesc, textWidth).Height;
+
+					int cellH = Math.Max(iconSize, nameH + descH + padding);
+					rowHeight = Math.Max(rowHeight, cellH);
+
+					col++;
+					if (col == cols) {
+						height += rowHeight + padding;
+						rowHeight = 0;
+						col = 0;
+					}
+				}
+
+				if (col != 0)
+					height += rowHeight + padding;
+
+				height += groupSpacing;
+			}
+		}
+
+		using var bmp = new Bitmap(width, height);
+		using var graphics = Graphics.FromImage(bmp);
+
+		graphics.Clear(Color.FromArgb(18, 18, 18));
+		graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+		int y = padding;
+
+		foreach (var group in grouped) {
+			graphics.DrawString(MainWindow.FormatCategoryName(group.Key), fontCategory, Brushes.White, 8, y);
+			y += categoryHeaderHeight;
+
+			int col = 0;
+			int rowHeight = 0;
+			int rowY = y;
+
+			foreach (var a in group) {
+				int x = col * cellWidth + padding;
+				int textX = x + iconSize + padding - 8;
+
+				var icon = GetAchievementIcon(a.Name);
+				graphics.DrawImage(icon, x, rowY, iconSize, iconSize);
+
+				var nameRect = new RectangleF(textX, rowY, cellWidth - iconSize - padding * 2, 30);
+				graphics.DrawString(a.Name, fontName, Brushes.White, nameRect);
+
+				var descRect = new RectangleF(textX, rowY + 30, cellWidth - iconSize - padding * 2, 60);
+				graphics.DrawString(a.Description, fontDesc, Brushes.LightGray, descRect);
+
+				int textWidth = cellWidth - iconSize - padding * 3;
+				var nameH = (int)graphics.MeasureString(a.Name, fontName, textWidth).Height;
+				var descH = (int)graphics.MeasureString(a.Description, fontDesc, textWidth).Height;
+
+				int cellH = Math.Max(iconSize, nameH + descH + padding);
+				rowHeight = Math.Max(rowHeight, cellH);
+
+				col++;
+
+				if (col == cols) {
+					rowY += rowHeight + padding;
+					y += rowHeight + padding;
+					rowHeight = 0;
+					col = 0;
+				}
+			}
+
+			if (col != 0) {
+				y += rowHeight + padding;
+				rowY += rowHeight + padding;
+			}
+
+			y += groupSpacing;
+			rowY = y;
+		}
+
+		bmp.Save(outputPath, System.Drawing.Imaging.ImageFormat.Png);
+	}
+#endif
 }

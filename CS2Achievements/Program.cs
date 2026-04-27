@@ -71,6 +71,10 @@ public static class GameService
 			Logger.Error("Failed to get SteamID: {Message}", ex.Message);
 		}
 
+#if DEBUG
+		GenerateImage();
+#endif
+
 		_gsl.NewGameState += OnNewGameState;
 		_gsl.BombStateUpdated += OnBombStateUpdated;
 		_gsl.PlayerGotKill += OnPlayerGotKill;
@@ -299,6 +303,29 @@ public static class GameService
 		if (kills < CurrentRoundData.Kills)
 			Achievements.CheckAchievement("ArmsRaceWin");
 	}
+
+#if DEBUG
+	public static string GetProjectRoot() {
+		var dir = AppContext.BaseDirectory;
+
+		for (int i = 0; i < 5; i++) {
+			if (Directory.GetFiles(dir, "*.csproj").Length > 0)
+				return dir;
+
+			dir = Directory.GetParent(dir)?.FullName;
+			if (dir == null)
+				break;
+		}
+
+		return AppContext.BaseDirectory;
+	}
+
+	public static void GenerateImage() {
+		var root = GetProjectRoot();
+		var path = Path.Combine(root, "ACHIEVEMENTS.png");
+		Achievements.GenerateImage(path);
+	}
+#endif
 }
 
 public static class AchievementTimers

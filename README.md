@@ -23,3 +23,6 @@ If you receive any errors, you may need to run the program as an administrator s
 ## Notes
 Most available achievements are related to kills with weapons, or winning rounds/matches on certain maps.
 GSI does not give the local player enough information to be able to get a lot of others working, such as enemy weapons, damage inflicted etc
+
+## Achievements
+![Achievements](./CS2Achievements/ACHIEVEMENTS.png)

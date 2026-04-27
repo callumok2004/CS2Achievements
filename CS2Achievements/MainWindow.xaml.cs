@@ -390,12 +390,12 @@ public partial class MainWindow : Window
 		}
 	}
 
-	static string FormatCategoryName(Category c) => c switch {
+	public static string FormatCategoryName(Category c) => c switch { // FIXME: Should be moved to Achievements class instead
 		Category.TeamTactics => "Team Tactics",
 		Category.CombatSkills => "Combat Skills",
 		Category.WeaponSpecialist => "Weapon Specialist",
 		Category.GlobalExpertise => "Global Expertise",
-		Category.ArmsRaceDemolition => "Arms Race & Demolition",
+		Category.ArmsRaceDemolition => "Arms Race"/* & Demolition"*/,
 		Category.CutContent => "Cut Content",
 		_ => c.ToString()
 	};
