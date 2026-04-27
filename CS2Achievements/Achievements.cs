@@ -254,8 +254,8 @@ public static class Achievements
 		new () { Name = "Sawed-Off Expert", Description = "Kill 50 enemies with the Sawed-Off.", MaxProgress = 50, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_sawedoff")] },
 		new () { Name = "PP-Bizon Expert", Description = "Kill 250 enemies with the PP-Bizon.", MaxProgress = 250, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_bizon")] },
 		new () { Name = "Knife Expert", Description = "Kill 100 enemies with the Knife.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_knife", "weapon_knife_t")] },
-		new () { Name = "HE Grenade Expert", Description = "Kill 100 enemies with the HE grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade")] },
-		new () { Name = "Flame Expert", Description = "Kill 100 enemies with the Molotov or Incendiary grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_molotov", "weapon_incgrenade")] },
+		// new () { Name = "HE Grenade Expert", Description = "Kill 100 enemies with the HE grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade")] },
+		// new () { Name = "Flame Expert", Description = "Kill 100 enemies with the Molotov or Incendiary grenade.", MaxProgress = 100, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithAnyOfWeapons("weapon_molotov", "weapon_incgrenade")] },
 		// new () { Name = "Premature Burial", Description = "Kill an enemy with a grenade after dying.", MaxProgress = 1, Category = Category.WeaponSpecialist, OnEvent = Event.KilledPlayer, Filters = [WithWeapon("weapon_hegrenade"), WithPlayerHealth(0)] },
 		new () { Name = "Pistol Master", Description = "Unlock all pistol kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["Desert Eagle Expert", "P2000/USP Tactical Expert", "Glock-18 Expert", "P250 Expert", "Dual Berettas Expert", "Five-SeveN Expert", "Tec-9 Expert"] },
 		new () { Name = "Rifle Master", Description = "Unlock all rifle kill achievements.", Category = Category.WeaponSpecialist, RequiredAchievements = ["AK-47 Expert", "M4 AR Expert", "AUG Expert", "SG553 Expert", "SCAR-20 Expert", "Galil AR Expert", "FAMAS Expert", "SSG 08 Expert", "G3SG1 Expert", "AWP Expert"] },
@@ -280,9 +280,9 @@ public static class Achievements
 		// new () { Name = "Bank On It", Description = "Win five matches on Bank.", MaxProgress = 5, Category = Category.GlobalExpertise },
 		// new () { Name = "Shorttrain Map Veteran", Description = "Win five matches on Shorttrain.", MaxProgress = 5, Category = Category.GlobalExpertise },
 		// new () { Name = "A World of Pane", Description = "Shoot out 14 windows in a single round on Office.", MaxProgress = 1, Category = Category.GlobalExpertise },
-		// new () { Name = "Tourist", Description = "Play a round on every Arms Race and Demolition map.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
+		new () { Name = "Tourist", Description = "Play a round on every Arms Race map."/* and Demolition map."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition, Items = ["ar_baggage", "ar_shoots", "ar_pool_day"] },
 		// new () { Name = "Denied!", Description = "Kill a player who is on gold knife level in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		// new () { Name = "Marksman", Description = "Win a match on every Arms Race and Demolition map.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
+		new () { Name = "Marksman", Description = "Win a match on every Arms Race map." /*and Demolition map."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition, Items = ["ar_baggage", "ar_shoots", "ar_pool_day"] },
 		new () { Name = "Rampage!", Description = "Win an Arms Race match without dying.", MaxProgress = 1, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife(), SurvivedRound()] },
 		// new () { Name = "FIRST!", Description = "Be the first player to get a kill in an Arms Race or Demolition match.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "One Shot One Kill", Description = "Kill three consecutive players using the first bullet of your gun in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
@@ -296,10 +296,10 @@ public static class Achievements
 		// new () { Name = "Knife on Knife", Description = "Kill an enemy who is on gold knife level with your own knife in Arms Race mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		// new () { Name = "Level Playing Field", Description = "Kill an enemy who is on gold knife level with a sub-machine gun in Arms Race Mode.", MaxProgress = 1, Category = Category.ArmsRaceDemolition },
 		new () { Name = "Still Alive", Description = "Survive more than 30 seconds with less than ten health in Arms Race"/* or Demolition mode."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition },
-		new () { Name = "Practice Practice Practice", Description = "Play 100 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 100, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()] },
+		new () { Name = "Practice Practice Practice", Description = "Play 100 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 100, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], OnIncrement = () => { AddUniqueItem("Tourist", CurrentMap); AddUniqueItem("Tourist", CurrentMap.EndsWith("_night") ? CurrentMap[..^6] : CurrentMap + "_night"); } },
 		new () { Name = "Gun Collector", Description = "Play 500 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 500, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], Prerequisite = "Practice Practice Practice" },
 		new () { Name = "King of the Kill", Description = "Play 5,000 matches of Arms Race." /* or Demolition mode." */, MaxProgress = 5_000, Category = Category.ArmsRaceDemolition, OnEvent = Event.GameOver, Filters = [OnArmsRace()], Prerequisite = "Gun Collector" },
-		new () { Name = "Gungamer", Description = "Win one match in Arms Race"/* or Demolition mode."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()] },
+		new () { Name = "Gungamer", Description = "Win one match in Arms Race"/* or Demolition mode."*/, MaxProgress = 1, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], OnIncrement = () => { AddUniqueItem("Marksman", CurrentMap); AddUniqueItem("Marksman", CurrentMap.EndsWith("_night") ? CurrentMap[..^6] : CurrentMap + "_night"); }  },
 		new () { Name = "Keep on Gunning", Description = "Win 25 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 25, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "Gungamer" },
 		new () { Name = "Kill of the Century", Description = "Win 100 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 100, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "Keep on Gunning" },
 		new () { Name = "The Professional", Description = "Win 500 matches in Arms Race."/* or Demolition mode."*/, MaxProgress = 500, Category = Category.ArmsRaceDemolition, CheckGroup = "ArmsRaceWin", Filters = [OnArmsRace(), OnlyKnife()], Prerequisite = "Kill of the Century" },
@@ -519,7 +519,7 @@ public static class Achievements
 			if (achievement.Complete) return;
 
 			if (achievement.Items != null && !achievement.Items.Contains(item)) {
-				Logger.Warning($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
+				// Logger.Warning($"Item '{item}' is not in the required set for achievement '{achievement.Name}'.");
 				return;
 			}
 
